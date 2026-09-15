@@ -1,0 +1,440 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GamePage & Game Hub CSS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.game-hub-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.game-page-active {
+  padding-top: 10px;
+}
+
+/* ── Hub Header ── */
+
+.game-hub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.hub-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hub-main-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.hub-subtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ── Config Bar ── */
+
+.hub-config-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.config-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.filter-pill-group {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.btn-filter-pill {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-filter-pill:hover {
+  color: #0f172a;
+}
+
+.btn-filter-pill.active {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Mixed Mode Banner ── */
+
+.mixed-mode-banner {
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mixed-mode-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 650px;
+}
+
+.mixed-mode-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  background: var(--bg-surface);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-primary-border);
+  flex-shrink: 0;
+}
+
+.mixed-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mixed-mode-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.mixed-mode-desc {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.btn-launch-mixed {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 24px;
+  font-size: 0.94rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.2);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-launch-mixed:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(30, 64, 175, 0.28);
+}
+
+.btn-launch-mixed:disabled {
+  background: var(--border-light);
+  color: var(--text-disabled);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Practice Anyway Banner Variant */
+.banner--practice-anyway {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.banner--practice-anyway .mixed-mode-icon {
+  border-color: var(--color-success-border);
+}
+
+.banner--practice-anyway .mixed-mode-title {
+  color: var(--color-success);
+}
+
+.banner--practice-anyway .mixed-mode-desc {
+  color: var(--text-muted);
+}
+
+.banner--practice-anyway .btn-launch-mixed {
+  background: var(--color-success);
+  box-shadow: 0 1px 3px rgba(22, 101, 52, 0.2);
+}
+
+.banner--practice-anyway .btn-launch-mixed:hover:not(:disabled) {
+  background: #15803d;
+  box-shadow: 0 3px 8px rgba(22, 101, 52, 0.28);
+}
+
+/* ── 6 Core Games Grid ── */
+
+/* ── 6 Games Grid ── */
+
+.core-games-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.core-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.game-module-card {
+  border-radius: 18px;
+  padding: 30px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  min-height: 200px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-module-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.09);
+}
+
+.game-module-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* ── Top title area: Tên game to, rõ, ấn tượng ── */
+.game-card-top-title-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game-card-main-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* ── Bottom logo area: Logo to, rõ, ấn tượng ── */
+.game-card-bottom-logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.game-card-large-logo {
+  font-size: 3.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.06));
+  transition: transform 0.2s ease;
+}
+
+.game-module-card:hover .game-card-large-logo {
+  transform: scale(1.1);
+}
+
+.game-card-locked-subtext {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(254, 243, 199, 0.9);
+  color: #92400e;
+  border: 1px solid #fde68a;
+  letter-spacing: 0.02em;
+}
+
+.game-card-available-badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #334155;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MỖI KHUNG GAME ĐỀU CÓ MÀU NỀN RIÊNG BIỆT (DISTINCT PALETTES)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Listening → Writing: Soft Blue */
+.game-module-card.game-card--listening_writing {
+  background: linear-gradient(140deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #bfdbfe;
+  color: #1e3a8a;
+}
+.game-module-card.game-card--listening_writing .game-card-main-title {
+  color: #1e3a8a;
+}
+.game-module-card.game-card--listening_writing:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 14px 30px rgba(30, 58, 138, 0.14);
+}
+
+/* 2. Listening → MCQ: Soft Teal */
+.game-module-card.game-card--listening_mcq {
+  background: linear-gradient(140deg, #f0fdfa 0%, #ccfbf1 100%);
+  border: 2px solid #99f6e4;
+  color: #0f766e;
+}
+.game-module-card.game-card--listening_mcq .game-card-main-title {
+  color: #0f766e;
+}
+.game-module-card.game-card--listening_mcq:hover {
+  border-color: #5eead4;
+  box-shadow: 0 14px 30px rgba(15, 118, 110, 0.14);
+}
+
+/* 3. Matching: Soft Sky */
+.game-module-card.game-card--matching {
+  background: linear-gradient(140deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #bae6fd;
+  color: #0369a1;
+}
+.game-module-card.game-card--matching .game-card-main-title {
+  color: #0369a1;
+}
+.game-module-card.game-card--matching:hover {
+  border-color: #7dd3fc;
+  box-shadow: 0 14px 30px rgba(3, 105, 161, 0.14);
+}
+
+/* 4. Gender & Articles: Soft Violet */
+.game-module-card.game-card--gender {
+  background: linear-gradient(140deg, #faf5ff 0%, #f3e8ff 100%);
+  border: 2px solid #e9d5ff;
+  color: #6b21a8;
+}
+.game-module-card.game-card--gender .game-card-main-title {
+  color: #6b21a8;
+}
+.game-module-card.game-card--gender:hover {
+  border-color: #d8b4fe;
+  box-shadow: 0 14px 30px rgba(107, 33, 168, 0.14);
+}
+
+/* 5. Verb Conjugation: Warm Orange / Amber */
+.game-module-card.game-card--verb_conjugation,
+.game-module-card.game-card--verb_construction {
+  background: linear-gradient(140deg, #fff7ed 0%, #ffedd5 100%);
+  border: 2px solid #fed7aa;
+  color: #c2410c;
+}
+.game-module-card.game-card--verb_conjugation .game-card-main-title,
+.game-module-card.game-card--verb_construction .game-card-main-title {
+  color: #9a3412;
+}
+.game-module-card.game-card--verb_conjugation:hover,
+.game-module-card.game-card--verb_construction:hover {
+  border-color: #fb923c;
+  box-shadow: 0 14px 30px rgba(234, 88, 12, 0.16);
+}
+
+/* 6. Cloze: Soft Coral / Rose */
+.game-module-card.game-card--cloze {
+  background: linear-gradient(140deg, #fff1f2 0%, #ffe4e6 100%);
+  border: 2px solid #fecdd3;
+  color: #9f1239;
+}
+.game-module-card.game-card--cloze .game-card-main-title {
+  color: #9f1239;
+}
+.game-module-card.game-card--cloze:hover {
+  border-color: #fda4af;
+  box-shadow: 0 14px 30px rgba(159, 18, 57, 0.14);
+}
+
+/* Locked Card style */
+.game-module-card.game-card--cloze.game-card--locked {
+  background: linear-gradient(140deg, #fafaf9 0%, #f5f5f4 100%);
+  border: 2px dashed #d6d3d1;
+  color: #78716c;
+  cursor: not-allowed;
+}
+.game-module-card.game-card--cloze.game-card--locked .game-card-main-title {
+  color: #78716c;
+}
+.game-module-card.game-card--cloze.game-card--locked:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #d6d3d1;
+}
+
+@media (max-width: 680px) {
+  .mixed-mode-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-launch-mixed {
+    width: 100%;
+    text-align: center;
+  }
+
+  .core-games-grid {
+    grid-template-columns: 1fr;
+  }
+}

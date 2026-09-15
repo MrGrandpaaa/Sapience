@@ -1,0 +1,244 @@
+/* ═══════════════════════════════════════════════════════════════════
+   VocabActionBar — Frame có border riêng chứa Search & Add Vocab
+   ═══════════════════════════════════════════════════════════════════ */
+
+.vocab-action-frame {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium); /* Frame có border riêng */
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── BÊN TRÁI: Search box (ở góc trái của frame) ───────────────────── */
+
+.vocab-search-wrapper {
+  position: relative;
+  max-width: 380px;
+  width: 100%;
+}
+
+.vocab-search-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vocab-search-input-group:focus-within {
+  background: var(--bg-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
+}
+
+.vocab-search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-disabled);
+  flex-shrink: 0;
+}
+
+.vocab-search-input {
+  width: 100%;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.vocab-search-input::placeholder {
+  color: var(--text-disabled);
+  font-size: 0.88rem;
+}
+
+.vocab-search-clear {
+  background: none;
+  border: none;
+  color: var(--text-disabled);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.vocab-search-clear:hover {
+  color: var(--text-muted);
+}
+
+/* ── Dropdown hiển thị kết quả tìm kiếm ───────────────────────────── */
+
+.vocab-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  min-width: 340px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Trường hợp KHÔNG có kết quả */
+.vocab-search-empty {
+  padding: 16px 14px;
+  text-align: center;
+}
+
+.vocab-search-not-saved {
+  display: inline-block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-overdue); /* Semantic red warning for not in library */
+  background: var(--color-overdue-bg);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-overdue-border);
+}
+
+/* Trường hợp CÓ kết quả */
+.vocab-search-results-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 8px 12px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.vocab-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.vocab-search-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background-color 0.12s ease;
+}
+
+.vocab-search-item:last-child {
+  border-bottom: none;
+}
+
+.vocab-search-item:hover {
+  background-color: #f9fafb;
+}
+
+.vocab-search-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vocab-search-item-word {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.vocab-search-item-pos {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.vocab-search-level-tag {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.vocab-search-level-tag.level-5 {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.vocab-search-item-meaning {
+  font-size: 0.84rem;
+  color: #4b5563;
+}
+
+/* ── BÊN PHẢI: Button Thêm từ vựng ────────────────────────────────── */
+
+.vocab-action-right {
+  display: flex;
+  align-items: center;
+}
+
+.btn-add-vocabulary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 9px 18px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.2);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.btn-add-vocabulary:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-add-vocabulary:active {
+  transform: translateY(0);
+}
+
+.btn-add-icon {
+  width: 17px;
+  height: 17px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 580px) {
+  .vocab-action-frame {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .vocab-search-wrapper {
+    max-width: 100%;
+  }
+
+  .vocab-search-dropdown {
+    min-width: 100%;
+  }
+
+  .btn-add-vocabulary {
+    width: 100%;
+    justify-content: center;
+  }
+}

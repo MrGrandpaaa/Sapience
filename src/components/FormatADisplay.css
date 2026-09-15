@@ -1,0 +1,803 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FormatADisplay — Structured Format A presentation
+   ═══════════════════════════════════════════════════════════════════ */
+
+.format-a-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── 1. Header / Entry (Vo) ── */
+
+.format-a-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.format-a-header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.format-a-entry-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.format-a-word {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.format-a-pos-tag {
+  font-size: 0.8rem;
+  color: #4b5563;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.format-a-vo-tag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.format-a-noun-notation-tag {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  padding: 2px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+}
+
+.format-a-gender-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.format-a-adj-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+/* ── 2. Verb Group ── */
+
+.format-a-verb-group {
+  font-size: 0.8rem;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* ── Section General ── */
+
+.format-a-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.format-a-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.section-title-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.abbrev-legend {
+  font-size: 0.74rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── 3. English & 4. Vietnamese Meanings ── */
+
+.format-a-meanings {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  gap: 8px;
+  border: 1px solid #f3f4f6;
+}
+
+.format-a-meaning-vi {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.meaning-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.meaning-text {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.format-a-meaning-en {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+/* ── Adjective Position Meanings ── */
+
+.position-meaning-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.position-meaning-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.position-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.position-tag--before {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.position-tag--after {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.position-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.position-desc-en {
+  color: #6b7280;
+  font-weight: normal;
+  font-size: 0.82rem;
+}
+
+/* ── 5. Conjugation (6 present-tense forms) ── */
+
+.conjugation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.conj-cell {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
+}
+
+.conj-pronoun {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.conj-verb {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ── 6. Verb Constructions & 7. Bilingual Meanings ── */
+
+.construction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.construction-item {
+  background: #f9fafb;
+  border-left: 3.5px solid #2563eb;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.construction-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.construction-pattern {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: #1e40af;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.construction-type-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-bare {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.badge-pattern {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.construction-meanings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0;
+}
+
+.c-meaning-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.86rem;
+}
+
+.c-lang-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.2;
+}
+
+.c-lang-tag.vi {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.c-lang-tag.en {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.c-meaning-text {
+  font-weight: 600;
+}
+
+.c-meaning-text.vi {
+  color: #1f2937;
+}
+
+.c-meaning-text.en {
+  color: #4b5563;
+  font-weight: normal;
+}
+
+.construction-notes {
+  display: flex;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  padding: 5px 8px;
+  border-radius: 5px;
+  line-height: 1.35;
+}
+
+.notes-icon {
+  flex-shrink: 0;
+}
+
+.construction-example {
+  font-size: 0.83rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.c-ex-fr {
+  font-style: italic;
+  font-weight: 600;
+  color: #374151;
+}
+
+.c-ex-vi {
+  color: #059669;
+}
+
+/* ── Collocations ── */
+
+.collocation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.collocation-tag {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+/* ── 8. Synonyms & 9. Antonyms ── */
+
+.format-a-syn-ant {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+}
+
+.syn-box, .ant-box {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.syn-label, .ant-label {
+  font-weight: 700;
+  color: #4b5563;
+  font-size: 0.82rem;
+  width: 170px;
+  flex-shrink: 0;
+}
+
+.word-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.word-tag {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.word-tag--syn {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.word-tag--ant {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* ── 10. 1 Example Trong Tình Huống Giao Tiếp Đời Thường ── */
+
+.example-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.example-french-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.example-french {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #166534;
+  font-style: italic;
+}
+
+.example-vietnamese {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #15803d;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.example-english {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ex-flag {
+  font-size: 0.85rem;
+}
+
+/* ── Responsive ── */
+
+/* ═══════════════════════════════════════════════════════════════════
+   Format A — NOUN (7 Strict Sections)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.format-a-noun-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.format-a-noun-section1 {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.noun-meta-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.noun-meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noun-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.noun-meta-label {
+  font-weight: 700;
+  color: #475569;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.noun-meta-val {
+  color: #1e293b;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.noun-notation-highlight {
+  font-size: 1.12rem;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #bae6fd;
+}
+
+.noun-badge-inline {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.article-pill {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f766e;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.article-explanation {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.noun-resolution-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  color: #1e40af;
+}
+
+.noun-plural-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  color: #854d0e;
+}
+
+.resolution-icon,
+.plural-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.meaning-text.en {
+  color: #2563eb;
+}
+
+.meaning-text.vi {
+  color: #dc2626;
+}
+
+.collocation-structured-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.collocation-structured-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+.col-idx {
+  font-weight: 700;
+  color: #64748b;
+  width: 18px;
+}
+
+.col-fr {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.col-vi {
+  color: #64748b;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .conjugation-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .syn-label, .ant-label {
+    width: 100%;
+  }
+
+  .position-meaning-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .noun-meta-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .noun-meta-label {
+    min-width: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FormatADisplay — Adjective Section & Parallel Panels (§10)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.format-a-adj-body {
+  width: 100%;
+}
+
+.format-a-adj-columns {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 24px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.format-a-adj-divider {
+  width: 1px;
+  background-color: #cbd5e1;
+  align-self: stretch;
+  min-height: 100%;
+}
+
+.format-a-adj-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.format-a-adj-column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.format-a-adj-single-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.format-a-adj-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e2e8f0;
+  gap: 10px;
+}
+
+.format-a-adj-column-header--before {
+  border-bottom-color: #3b82f6;
+}
+
+.format-a-adj-column-header--after {
+  border-bottom-color: #10b981;
+}
+
+.format-a-adj-column-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+  text-transform: uppercase;
+}
+
+.format-a-adj-column-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.format-a-adj-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.format-a-adj-form-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.format-a-adj-form-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 75px;
+}
+
+@media (max-width: 768px) {
+  .format-a-adj-columns {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .format-a-adj-divider {
+    display: none;
+  }
+}

@@ -1,0 +1,107 @@
+:root {
+  /* ── Academic Neutrals ────────────────────────────────────────────── */
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-muted: #f8fafc;
+
+  --text-main: #0f172a;
+  --text-body: #1e293b;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+  --text-disabled: #94a3b8;
+
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-strong: #94a3b8;
+
+  /* ── Primary Action / Brand (Academic Deep Navy) ──────────────────── */
+  --color-primary: #1e40af;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #172554;
+  --color-primary-subtle: #eff6ff;
+  --color-primary-border: #bfdbfe;
+
+  /* ── Accent Secondary (Refined Teal for Save & Add More) ─────────── */
+  --color-accent-teal: #0f766e;
+  --color-accent-teal-hover: #115e59;
+  --color-accent-teal-active: #134e4a;
+  --color-accent-teal-subtle: #f0fdfa;
+  --color-accent-teal-border: #99f6e4;
+
+  /* ── Major Vocabulary Category Visual Differentiation ─────────────── */
+  /* Noun: Academic Navy / Slate Blue */
+  --color-noun: #1e40af;
+  --color-noun-bg: #eff6ff;
+  --color-noun-border: #bfdbfe;
+
+  /* Verb: Sage / Forest Green */
+  --color-verb: #166534;
+  --color-verb-bg: #f0fdf4;
+  --color-verb-border: #bbf7d0;
+
+  /* Adjective: Warm Ochre / Amber */
+  --color-adj: #854d0e;
+  --color-adj-bg: #fefce8;
+  --color-adj-border: #fef08a;
+
+  /* Other parts of speech: Slate Neutral */
+  --color-other: #475569;
+  --color-other-bg: #f1f5f9;
+  --color-other-border: #cbd5e1;
+
+  /* ── Semantic Status Colors (Red strictly reserved for errors/overdue) ─ */
+  --color-overdue: #991b1b;
+  --color-overdue-bg: #fef2f2;
+  --color-overdue-border: #fecaca;
+
+  --color-due: #854d0e;
+  --color-due-bg: #fefce8;
+  --color-due-border: #fef08a;
+
+  --color-success: #166534;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+
+  /* ── Elevation & Natural Shadows ──────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 25px -4px rgba(15, 23, 42, 0.08);
+  --shadow-modal: 0 20px 45px -10px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.05);
+
+  /* ── Radii ────────────────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 9999px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  color: var(--text-body);
+  background: var(--bg-app);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+

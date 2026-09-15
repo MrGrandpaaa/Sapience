@@ -1,0 +1,694 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ReviewSessionModal — SRS Prioritized Review Session UI
+   ═══════════════════════════════════════════════════════════════════ */
+
+.review-session-card {
+  max-width: 700px;
+  width: 95%;
+  max-height: 92vh;
+  padding: 0;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-modal);
+}
+
+.review-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.review-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-queue-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.review-queue-count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.review-progress-track {
+  height: 4px;
+  background: var(--border-light);
+  width: 100%;
+}
+
+.review-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.25s ease;
+}
+
+.review-modal-body {
+  padding: 20px;
+}
+
+/* ── Flashcard Box ── */
+
+.review-flashcard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review-priority-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+}
+
+.priority-rank-badge {
+  font-weight: 700;
+  color: #ea580c;
+}
+
+.priority-reason-text {
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.review-word-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-word-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-surface-word {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+/* ── Prompt & Reveal ── */
+
+.review-prompt-box {
+  text-align: center;
+  padding: 18px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.prompt-question {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-subtle);
+}
+
+.btn-reveal-answer {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.94rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(30, 64, 175, 0.2);
+}
+
+.btn-reveal-answer:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-reveal-answer:active {
+  transform: translateY(1px);
+}
+
+/* ── Revealed Meanings & Example ── */
+
+.review-revealed-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.revealed-meanings {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revealed-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.revealed-row.vi .text {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.revealed-row.en .text {
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.revealed-example {
+  background: #f0fdf4;
+  border-left: 3.5px solid #16a34a;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.example-french-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-style: italic;
+  font-weight: 700;
+  color: #15803d;
+  font-size: 0.95rem;
+}
+
+.example-vi-line {
+  font-size: 0.84rem;
+  color: #4b5563;
+}
+
+.review-feedback-prompt {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.review-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-retrieval-action {
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  outline: none;
+}
+
+.btn-retrieval-action:active {
+  transform: translateY(1px);
+}
+
+.action-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.action-sub {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.btn-retrieval-action--failure {
+  background: var(--color-overdue-bg);
+  color: var(--color-overdue);
+  border-color: var(--color-overdue-border);
+}
+
+.btn-retrieval-action--failure:hover {
+  background: var(--color-overdue);
+  color: #ffffff;
+}
+
+.btn-retrieval-action--borderline {
+  background: var(--color-due-bg);
+  color: var(--color-due);
+  border-color: var(--color-due-border);
+}
+
+.btn-retrieval-action--borderline:hover {
+  background: #b45309;
+  color: #ffffff;
+}
+
+.btn-retrieval-action--success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
+.btn-retrieval-action--success:hover {
+  background: var(--color-success);
+  color: #ffffff;
+}
+
+/* ── Session Completed View ── */
+
+.review-completed-view {
+  text-align: center;
+  padding: 24px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.completed-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.completed-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.completed-desc {
+  font-size: 0.95rem;
+  color: #475569;
+  max-width: 420px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.completed-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.summary-pill {
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.summary-pill .pill-number {
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.summary-pill .pill-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.summary-pill--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.summary-pill--borderline {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.summary-pill--failure {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.btn-finish-review {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.15s ease;
+}
+
+.btn-finish-review:hover {
+  background: var(--color-primary-hover);
+}
+
+@media (max-width: 480px) {
+  .review-actions-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Interactive Game Review Layout ── */
+
+.review-interactive-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-algorithm-badge {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.algorithm-badge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.algorithm-game-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.algorithm-support-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.algorithm-support-pill.high_support {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.algorithm-support-pill.medium_support {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.algorithm-support-pill.low_support {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.algorithm-reason-text {
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.review-game-card-wrapper {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.review-post-eval-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-toggle-format-a {
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.btn-toggle-format-a:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.review-format-a-container {
+  margin-top: 6px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.completed-accuracy-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-border);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 440px;
+}
+
+.accuracy-percent {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.accuracy-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.skills-trained-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.skills-summary-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.skills-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.skill-summary-tag {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+/* ── Granular Skill Feedback in Review Session ── */
+.eval-skill-feedback-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.eval-skill--core-error {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #991b1b;
+}
+
+.eval-skill--minor-error {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  color: #92400e;
+}
+
+.eval-skill--success {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #166534;
+}
+
+.eval-skill-feedback-title {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.eval-skill-flow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.eval-skill-label {
+  color: inherit;
+}
+
+.eval-skill-score-shift {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.score-delta-tag {
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.score-delta-tag.positive {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.score-delta-tag.negative {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.eval-skill-current-matrix {
+  margin-top: 4px;
+}
+
+/* ── Completed Session Items History ── */
+.completed-items-history {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.history-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.history-item-row {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-item-word {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.history-item-result {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.history-item-result.result-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.history-item-result.result-borderline {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.history-item-result.result-failure {
+  background: #fee2e2;
+  color: #991b1b;
+}
+

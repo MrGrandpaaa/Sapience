@@ -1,0 +1,259 @@
+/* ═══════════════════════════════════════════════════════════════════
+   VocabStats — 3 horizontal sections: TOTAL | LEVEL 1–4 | LEVEL 5
+   ═══════════════════════════════════════════════════════════════════ */
+
+.vocab-stats-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  min-height: 140px;
+}
+
+/* ── PHẦN 1: TOTAL (Cột lớn ngoài cùng bên trái) ─────────────────── */
+
+.vocab-stat-panel--total {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 16px;
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--border-light);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.vocab-stat-panel--total:hover {
+  background-color: #f1f5f9;
+}
+
+.vocab-stat-panel--total.is-selected {
+  background-color: #cbd5e1;
+}
+
+.vocab-stat-number--total {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+  margin: 4px 0;
+}
+
+/* ── PHẦN 2: LEVEL 1–4 (Khối ở giữa, chia chính xác 2×2) ────────── */
+
+.vocab-stat-grid-2x2 {
+  flex: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  padding: 0;
+  margin: 0;
+  gap: 0; /* Không có gap */
+  border-right: 1px solid var(--border-light); /* Dính trực tiếp vào Level 5 không có khoảng trắng */
+}
+
+.vocab-level-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.vocab-level-cell:hover {
+  background-color: var(--bg-subtle);
+}
+
+.vocab-level-cell.is-selected {
+  background-color: #e2e8f0;
+}
+
+/* Đường phân chia nội bộ 2×2 */
+.vocab-level-cell--1 {
+  border-right: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.vocab-level-cell--2 {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.vocab-level-cell--3 {
+  border-right: 1px solid var(--border-light);
+}
+
+.vocab-level-cell--4 {
+  /* Dính trực tiếp vào cạnh phải của 2x2, tiếp giáp Level 5 không có khoảng trắng */
+}
+
+.vocab-level-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+}
+
+.vocab-level-number {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+/* ── PHẦN 3: LEVEL 5 (Cột riêng ngoài cùng bên phải, mastery) ─────── */
+
+.vocab-stat-panel--level5 {
+  flex: 1.3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 18px;
+  /* Visual prominence cao: nền ấm hổ phách nhẹ */
+  background: var(--color-due-bg);
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.vocab-stat-panel--level5:hover {
+  filter: brightness(0.96);
+}
+
+.vocab-stat-panel--level5.is-selected {
+  background-color: #fcd34d;
+}
+
+.vocab-level5-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vocab-level-label--mastery {
+  color: var(--color-due);
+  font-weight: 700;
+}
+
+.vocab-mastery-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #fde68a;
+  color: #78350f;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+  border: 1px solid #fcd34d;
+}
+
+.vocab-stat-number--level5 {
+  font-size: 2.75rem; /* Số lớn nổi bật nhất để tạo cảm giác mastery */
+  font-weight: 800;
+  color: var(--color-due);
+  line-height: 1.1;
+  margin: 4px 0;
+}
+
+.vocab-stat-sub--mastery {
+  color: var(--color-due);
+  font-weight: 600;
+}
+
+/* ── Nhãn chung & chú thích ───────────────────────────────────────── */
+
+.vocab-stat-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.vocab-stat-sub {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Responsive: LEVEL 5 luôn là một cột riêng dính trực tiếp vào 2×2
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Tablet (<= 768px): thu gọn padding, 3 cột vẫn nằm ngang */
+@media (max-width: 768px) {
+  .vocab-stats-bar {
+    min-height: 120px;
+    margin-bottom: 20px;
+  }
+
+  .vocab-stat-panel--total,
+  .vocab-stat-panel--level5 {
+    padding: 14px 10px;
+  }
+
+  .vocab-stat-number--total {
+    font-size: 2rem;
+  }
+
+  .vocab-stat-number--level5 {
+    font-size: 2.2rem;
+  }
+
+  .vocab-level-cell {
+    padding: 8px 10px;
+  }
+
+  .vocab-level-number {
+    font-size: 1.15rem;
+  }
+}
+
+/* Mobile (<= 560px): TOTAL xếp trên, cụm Level 1-4 (2x2) và Level 5 xếp dưới dính trực tiếp nhau */
+@media (max-width: 560px) {
+  .vocab-stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: auto;
+  }
+
+  .vocab-stat-panel--total {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: 12px 16px;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .vocab-stat-number--total {
+    font-size: 1.8rem;
+    margin: 0;
+  }
+
+  /* Cụm Level phía dưới: Level 1-4 và Level 5 dính trực tiếp vào nhau, không có khoảng trắng */
+  .vocab-stat-grid-2x2 {
+    flex: 1.8;
+    border-right: 1px solid var(--border-light);
+  }
+
+  .vocab-stat-panel--level5 {
+    flex: 1.2;
+    padding: 12px;
+  }
+
+  .vocab-stat-number--level5 {
+    font-size: 2rem;
+  }
+}

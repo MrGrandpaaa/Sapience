@@ -1,0 +1,842 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MasterVocabList — Master Vocabulary List UI & Card Presentation
+   ═══════════════════════════════════════════════════════════════════ */
+
+.master-vocab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+/* ── SRS Review Queue Banner ─────────────────────────────────────────── */
+
+.srs-queue-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #eff6ff 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.06);
+}
+
+.queue-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.queue-banner-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.queue-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.queue-banner-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.queue-banner-sub {
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.queue-banner-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.queue-batch-selector {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.btn-batch-opt {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-batch-opt:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-batch-opt.active {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.btn-start-queue-review {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-start-queue-review:hover {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.btn-start-queue-review:active {
+  transform: translateY(0);
+}
+
+/* ── Toolbar & Level Tabs ─────────────────────────────────────────── */
+
+.master-vocab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.master-vocab-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.master-vocab-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.master-vocab-tab:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.master-vocab-tab.active {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.master-vocab-tab .tab-count {
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.master-vocab-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Specific tab active states matching SRS colors */
+.tab-due {
+  border: 1px solid #fed7aa;
+  background: #fffaf5;
+  color: #c2410c;
+}
+
+.tab-due.has-due {
+  border-color: #f97316;
+  font-weight: 700;
+}
+
+.tab-due.active {
+  background: #ea580c;
+  color: #ffffff;
+}
+
+.tab-count--due {
+  background: #ffedd5 !important;
+  color: #9a3412 !important;
+}
+
+.tab-due.active .tab-count--due {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.level-tab--0.active {
+  background: #475569;
+}
+
+.level-tab--1.active {
+  background: #ef4444;
+}
+
+.level-tab--2.active {
+  background: #f97316;
+}
+
+.level-tab--3.active {
+  background: #d97706;
+}
+
+.level-tab--4.active {
+  background: #2563eb;
+}
+
+.level-tab--5.active {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  border-color: #f59e0b;
+}
+
+/* Quick filter within list */
+.master-vocab-quick-filter {
+  position: relative;
+  min-width: 200px;
+}
+
+.quick-filter-input {
+  width: 100%;
+  padding: 6px 28px 6px 10px;
+  font-size: 0.84rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+  background: #f9fafb;
+}
+
+.quick-filter-input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+}
+
+.quick-filter-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.quick-filter-clear:hover {
+  color: #374151;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────── */
+
+.master-vocab-empty {
+  background: #ffffff;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.empty-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.empty-desc {
+  max-width: 520px;
+  font-size: 0.92rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.btn-reset-filters {
+  margin-top: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-reset-filters:hover {
+  background: #1d4ed8;
+}
+
+/* ── Cards Grid ──────────────────────────────────────────────────── */
+
+.master-vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.master-vocab-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.master-vocab-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Card Header (Top Bar: Level on left, Speaker top-right) ── */
+
+.vocab-card-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ── Card Word Row (Word on line below Level, notation adjacent) ── */
+
+.vocab-card-word-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 8px;
+}
+
+.vocab-word-main {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.vocab-noun-notation-tag {
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-style: italic;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.vocab-article-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f766e;
+  background: #ccfbf1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.vocab-meta-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vocab-pos-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f3f4f6;
+  color: #4b5563;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.vocab-level-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  color: #ffffff;
+}
+
+.vocab-level-badge.level-0 {
+  background: #64748b;
+}
+
+.vocab-level-badge.level-1 {
+  background: #ef4444;
+}
+
+.vocab-level-badge.level-2 {
+  background: #f97316;
+}
+
+.vocab-level-badge.level-3 {
+  background: #d97706;
+}
+
+.vocab-level-badge.level-4 {
+  background: #2563eb;
+}
+
+.vocab-level-badge.level-5 {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border: 1px solid #fde68a;
+}
+
+/* ── SRS Memory Status Row ── */
+
+.vocab-srs-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  border: 1px solid #f1f5f9;
+}
+
+.srs-timing-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.srs-due-badge {
+  font-weight: 800;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.srs-next-badge {
+  color: #475569;
+  font-weight: 600;
+}
+
+.srs-baseline-tag {
+  color: #94a3b8;
+  font-size: 0.73rem;
+}
+
+.srs-streak-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.srs-streak-badge {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.srs-review-count {
+  color: #64748b;
+  font-size: 0.74rem;
+}
+
+/* ── Interactive Retrieval Practice Bar ── */
+
+.vocab-retrieval-bar {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.retrieval-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.retrieval-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-retrieval {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.btn-retrieval:active {
+  transform: translateY(1px);
+}
+
+.btn-retrieval--success {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.btn-retrieval--success:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.btn-retrieval--borderline {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+.btn-retrieval--borderline:hover {
+  background: #ca8a04;
+  color: #ffffff;
+}
+
+.btn-retrieval--failure {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.btn-retrieval--failure:hover {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+/* ── Card Meanings ── */
+
+.vocab-card-meanings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vocab-meaning-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.vocab-meaning-row.vi .meaning-text {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.vocab-meaning-row.en .meaning-text {
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.meaning-flag {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ── Noun Collocations Preview ── */
+
+.vocab-card-collocations {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.collocations-title {
+  font-weight: 700;
+  color: #64748b;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.collocations-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.collocation-preview-item {
+  color: #334155;
+  font-weight: 500;
+}
+
+/* ── Example Preview ── */
+
+.vocab-card-example {
+  background: #f0fdf4;
+  border-left: 3px solid #16a34a;
+  border-radius: 0 6px 6px 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.83rem;
+}
+
+.example-text-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.example-quote {
+  font-weight: 600;
+  color: #15803d;
+  font-style: italic;
+}
+
+.example-translation {
+  color: #4b5563;
+  font-size: 0.78rem;
+}
+
+/* ── Card Footer & Controls ── */
+
+.vocab-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.vocab-level-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.level-control-label {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.level-control-select {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.level-control-select:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.vocab-card-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-view-format-a {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-view-format-a:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.btn-delete-vocab {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 5px 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-vocab:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.trash-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Delete Confirmation Modal ── */
+
+.modal-card--confirm {
+  max-width: 440px;
+}
+
+.delete-confirm-text {
+  font-size: 1rem;
+  color: #1f2937;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.delete-confirm-subtext {
+  font-size: 0.86rem;
+  color: #6b7280;
+  line-height: 1.4;
+  margin: 0 0 16px;
+}
+
+.btn-delete-confirm {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-delete-confirm:hover {
+  background: #b91c1c;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 680px) {
+  .srs-queue-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .queue-banner-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .queue-batch-selector {
+    justify-content: center;
+  }
+
+  .btn-start-queue-review {
+    justify-content: center;
+  }
+
+  .master-vocab-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .master-vocab-quick-filter {
+    width: 100%;
+  }
+
+  .master-vocab-grid {
+    grid-template-columns: 1fr;
+  }
+}

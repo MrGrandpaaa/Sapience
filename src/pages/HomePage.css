@@ -1,0 +1,664 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Home Page — Review Dashboard Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-dashboard-container {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: #f8fafc;
+}
+
+/* ── Review Dashboard Wrapper ── */
+.review-dashboard-wrapper {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── SEPARATE FIERY HERO CARD (Warm Red/Orange Flame Theme) ── */
+.review-fire-hero-card {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 40%, #dc2626 80%, #b91c1c 100%);
+  border-radius: 24px;
+  padding: 30px 24px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 16px 36px -8px rgba(234, 88, 12, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, filter 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.review-fire-hero-card:hover {
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: 0 22px 45px -8px rgba(234, 88, 12, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  filter: brightness(1.03);
+}
+
+.review-fire-hero-card:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 10px 24px -6px rgba(234, 88, 12, 0.4);
+}
+
+.fire-hero-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fire-hero-flame-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.fire-hero-flame-icon {
+  font-size: 0.95rem;
+}
+
+.fire-hero-overdue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #b91c1c;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fire-hero-overdue-count {
+  font-weight: 900;
+}
+
+.fire-hero-center-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fire-hero-count-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fire-hero-flame-side {
+  font-size: 2.2rem;
+  animation: pulseFlame 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulseFlame {
+  from {
+    transform: scale(0.95) rotate(-3deg);
+    opacity: 0.88;
+  }
+  to {
+    transform: scale(1.08) rotate(3deg);
+    opacity: 1;
+  }
+}
+
+.fire-hero-number {
+  font-size: 4.4rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.fire-hero-label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffedd5;
+}
+
+/* ── Refined Controls Card ── */
+.review-controls-card {
+  padding: 24px 26px;
+  gap: 18px;
+}
+
+/* ── Main Review Dashboard Card ── */
+.review-dashboard-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Top Header ── */
+.dashboard-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 14px;
+}
+
+.dashboard-title-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-border);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.resume-title-tag {
+  color: var(--color-due);
+  background: var(--color-due-bg);
+  border-color: var(--color-due-border);
+}
+
+.dashboard-bell-icon {
+  font-size: 1rem;
+}
+
+/* ── Review Count & Streak Row (Side by side) ── */
+.review-count-streak-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.review-total-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* Visually prominent review count number */
+.review-total-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.review-total-number.highlight-number {
+  color: var(--color-primary);
+}
+
+.review-total-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Review streak placed right next to review count */
+.review-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.streak-flame-icon {
+  font-size: 0.95rem;
+}
+
+/* ── Breakdown Badges (Overdue & Due) ── */
+.review-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.breakdown-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Red is STRICTLY reserved for semantic reasons: Overdue */
+.breakdown-pill--overdue {
+  background: var(--color-overdue-bg);
+  border: 1px solid var(--color-overdue-border);
+  color: var(--color-overdue);
+}
+
+.breakdown-pill--due {
+  background: var(--color-due-bg);
+  border: 1px solid var(--color-due-border);
+  color: var(--color-due);
+}
+
+.status-dot {
+  font-size: 0.9rem;
+}
+
+.breakdown-count {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* ── Estimated Time Row ── */
+.review-estimated-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-medium);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.estimated-time-label {
+  font-weight: 600;
+}
+
+.estimated-time-val {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.estimated-time-sub {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+  margin-left: 4px;
+}
+
+/* ── Session Size Selector ── */
+.session-size-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.session-size-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.session-size-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-step-qty {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-step-qty:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+}
+
+.btn-step-qty:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.session-size-input-wrapper {
+  position: relative;
+  width: 90px;
+}
+
+.session-size-input {
+  width: 100%;
+  height: 42px;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.session-size-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+/* Chrome, Safari, Edge, Opera number spin remove */
+.session-size-input::-webkit-outer-spin-button,
+.session-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.session-size-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.session-size-hint {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
+.session-quick-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.quick-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-chip:hover {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
+.quick-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ── Primary Action Button ── */
+.btn-start-review-main {
+  width: 100%;
+  padding: 15px 24px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(30, 64, 175, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-start-review-main:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.28);
+}
+
+.btn-start-review-main:active {
+  transform: translateY(0);
+}
+
+/* ── Resume Review Session Specifics ── */
+.resume-session-card {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+.resume-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.resume-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resume-progress-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.resume-progress-count {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.resume-progress-track {
+  width: 100%;
+  height: 12px;
+  background: var(--border-light);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.resume-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-continue-review {
+  background: var(--color-primary);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+
+.btn-continue-review:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-discard-session {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  padding: 6px;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+  margin-top: -12px;
+}
+
+.btn-discard-session:hover {
+  color: #ef4444;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALL CAUGHT UP VIEW (0 DUE ITEMS)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.all-caught-up-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: slideUpFade 0.25s ease;
+}
+
+.all-caught-up-icon-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-bg);
+  border: 1.5px solid var(--color-success-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  color: var(--color-success);
+}
+
+.all-caught-up-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.all-caught-up-sub {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-subtle);
+  line-height: 1.5;
+}
+
+.all-caught-up-streak-box {
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.btn-practice-anyway {
+  padding: 12px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-main);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-practice-anyway:hover {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.btn-practice-anyway:active {
+  transform: translateY(0);
+}
+
+.practice-drawer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 4px;
+}
+
