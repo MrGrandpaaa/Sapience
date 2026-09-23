@@ -1,6 +1,6 @@
 import { AdjectivePosition, PartOfSpeech } from '../models/types';
 import { FormatAAdjectiveGrammar } from '../models/lexical';
-import { VocabularyItem } from '../models/vocabulary';
+import { VocabularyItem, CardDisplayData } from '../models/vocabulary';
 
 /**
  * Checks whether the before and after noun definitions for an adjective
@@ -53,7 +53,7 @@ export interface AdjectiveFormsResult {
  * Extracts and normalizes masculine and feminine forms for an adjective.
  */
 export function getAdjectiveForms(
-  itemOrGrammar: VocabularyItem | FormatAAdjectiveGrammar | { grammar?: any; surface_form?: string },
+  itemOrGrammar: VocabularyItem | CardDisplayData | FormatAAdjectiveGrammar | { grammar?: any; surface_form?: string },
 ): AdjectiveFormsResult {
   let grammar: FormatAAdjectiveGrammar | undefined;
   let surfaceForm = '';

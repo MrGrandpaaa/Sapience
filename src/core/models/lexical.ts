@@ -31,6 +31,19 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ---------------------------------------------------------------------------
+// Related Words (Synonyms / Antonyms with independent gender)
+// ---------------------------------------------------------------------------
+
+export type RelatedWordGender = 'mas' | 'fem';
+
+export interface LexicalRelatedWord {
+  word: string;
+  gender: RelatedWordGender;
+}
+
+export type RelatedWord = string | LexicalRelatedWord;
+
+// ---------------------------------------------------------------------------
 // Top-level container
 // ---------------------------------------------------------------------------
 
@@ -67,9 +80,9 @@ export interface FormatAData {
   collocations?: string[];
 
   /** Sense-appropriate synonyms.  Absent when none appropriate.  Never fabricated. */
-  synonyms?: string[];
+  synonyms?: (string | LexicalRelatedWord)[];
   /** Sense-appropriate antonyms.  Absent when none appropriate.  Never fabricated. */
-  antonyms?: string[];
+  antonyms?: (string | LexicalRelatedWord)[];
 
   /**
    * Conversational examples list (§1, §4).
@@ -275,8 +288,8 @@ export interface AdjectivePositionalEntry {
   meaning_en?: string;
   meaning_vi?: string;
   examples?: FormatAExample[];
-  synonyms?: string[];
-  antonyms?: string[];
+  synonyms?: (string | LexicalRelatedWord)[];
+  antonyms?: (string | LexicalRelatedWord)[];
   collocations?: string[];
 }
 

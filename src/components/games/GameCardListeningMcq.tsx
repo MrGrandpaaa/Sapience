@@ -90,7 +90,12 @@ export function GameCardListeningMcq({
             </span>
             <strong className="eval-title">{evaluation.feedbackTitle}</strong>
           </div>
-          <p className="eval-message">{evaluation.feedbackMessage}</p>
+          {!evaluation.isCorrect && (
+            <div className="eval-correct-target">
+              <span className="target-label">Correct answer:</span>
+              <span className="target-text">{evaluation.correctAnswer}</span>
+            </div>
+          )}
           <GameAnswerMeanings item={question.targetItem} />
         </div>
       )}

@@ -423,8 +423,8 @@ export function ReviewSessionModal({
                     onClick={handleNextQuestion}
                   >
                     {currentIndex + 1 < questions.length
-                      ? 'Next Question → (Spacebar)'
-                      : 'View Final Summary →'}
+                      ? 'Next Question'
+                      : 'View Final Summary'}
                   </button>
 
                   <button

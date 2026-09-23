@@ -1,6 +1,8 @@
-import { UUID, PartOfSpeech } from '../models/types';
+import { UUID, PartOfSpeech, Gender } from '../models/types';
 import {
+  AtomicVocabularyRecord,
   VocabularyItem,
+  CardDisplayData,
   VocabularyStatistics,
   calculateVocabularyStats,
   VocabLevel,
@@ -18,9 +20,26 @@ import {
   VerbConjugationPerson,
 } from './verbConjugationService';
 import { createAdjectiveUnits } from './adjectivePresentationService';
+import { cleanNounLemma } from './nounPresentationService';
 import { searchBySpelling } from '../../utils/spellingSearch';
+import { RelatedWordGender, LexicalRelatedWord, FormatAData } from '../models/lexical';
 
-const STORAGE_KEY = 'sapience_vocab_items_v1';
+export function normalizeRelatedWord(
+  item: string | LexicalRelatedWord,
+  fallbackGender: RelatedWordGender = 'mas',
+): LexicalRelatedWord {
+  if (typeof item === 'string') {
+    return { word: item, gender: fallbackGender };
+  }
+  return {
+    word: item.word || '',
+    gender: item.gender === 'fem' ? 'fem' : 'mas',
+  };
+}
+
+const STORAGE_KEY_ITEMS = 'sapience_vocab_items_v1';
+const STORAGE_KEY_CARDS = 'sapience_vocab_cards_v1';
+
 const LEGACY_STORAGE_KEYS = [
   'french-vocab-items-v2',
   'french-vocab-items',
@@ -30,23 +49,24 @@ const LEGACY_STORAGE_KEYS = [
   'french_vocab_daily_streak_v1',
 ];
 
-type Listener = (items: VocabularyItem[]) => void;
+type Listener = (items: AtomicVocabularyRecord[]) => void;
+type CardListener = (cards: CardDisplayData[]) => void;
 
 /**
  * Master Vocabulary Service.
  *
- * Single source of truth for the persistent Master Vocabulary List.
- * Accessible by:
- * - UI hooks (useVocabulary)
- * - Game engines & review sessions
- * - Cloze test generators
- * - Natural example generator (for context-aware vocabulary reuse)
- *
- * Each saved item maintains its distinct lexical identity separate from spelling.
+ * Implements strict architectural separation between:
+ * 1. CARD DISPLAY DATA (CardDisplayData): Visual presentation for cards/catalog.
+ *    May visually combine related forms (e.g. "compagnon / compagne").
+ * 2. ATOMIC VOCABULARY MEMORY DATA (AtomicVocabularyRecord / VocabularyItem):
+ *    Each independently testable lexical item is stored separately with its own gender,
+ *    SRS memory state, and history. Source of truth for all games, reviews, and retrieval.
  */
 class MasterVocabularyService {
-  private items: VocabularyItem[] = [];
+  private items: AtomicVocabularyRecord[] = [];
+  private cards: CardDisplayData[] = [];
   private listeners: Set<Listener> = new Set();
+  private cardListeners: Set<CardListener> = new Set();
   private initialized = false;
 
   constructor() {
@@ -59,7 +79,7 @@ class MasterVocabularyService {
     this.initialized = true;
   }
 
-  private ensureSrsFields(item: VocabularyItem): VocabularyItem {
+  private ensureSrsFields(item: AtomicVocabularyRecord): AtomicVocabularyRecord {
     const srs = srsEngineService.createInitialMemoryData((item.level ?? 0) as any, item.part_of_speech, item);
     const skills = item.skill_performance || srs.skill_performance;
 
@@ -99,46 +119,579 @@ class MasterVocabularyService {
     };
   }
 
+  /**
+   * Detects whether an entry contains visually combined forms
+   * that require decomposition into atomic records.
+   */
+  public isCombinedEntry(item: any): boolean {
+    if (!item) return false;
+
+    // Explicit combined check: has " / " in surface_form
+    if (typeof item.surface_form === 'string' && item.surface_form.includes(' / ')) {
+      return true;
+    }
+
+    // Noun with dual genders
+    if (item.part_of_speech === PartOfSpeech.Noun) {
+      const grammar = item.format_a?.grammar;
+      if (
+        grammar?.gender_choice === 'both' ||
+        grammar?.gender === Gender.Both ||
+        item.gender === Gender.Both ||
+        (grammar?.masculine_form && grammar?.feminine_form) ||
+        (grammar?.forms?.masculine && grammar?.forms?.feminine)
+      ) {
+        return true;
+      }
+    }
+
+    // Adjective with distinct masculine & feminine forms
+    if (item.part_of_speech === PartOfSpeech.Adjective) {
+      const grammar = item.format_a?.grammar;
+      if (
+        grammar?.masculine &&
+        grammar?.feminine &&
+        grammar.masculine.trim().toLowerCase() !== grammar.feminine.trim().toLowerCase()
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Decomposes any vocabulary entry into:
+   * 1. CardDisplayData (for card presentation)
+   * 2. AtomicVocabularyRecord[] (for game questions and memory tracking)
+   */
+  public decomposeEntry(entry: any): { card: CardDisplayData; atomicRecords: AtomicVocabularyRecord[] } {
+    const cardId: UUID =
+      entry.card_id ||
+      entry.id ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+
+    const now = new Date();
+    const createdAt = entry.created_at || now;
+    const updatedAt = entry.updated_at || now;
+
+    // ── CASE 1: NOUN WITH DUAL FORMS ──────────────────────────────────────────
+    if (entry.part_of_speech === PartOfSpeech.Noun && this.isCombinedEntry(entry)) {
+      const grammar = entry.format_a?.grammar;
+      const rawMasc =
+        grammar?.masculine_form?.lemma ||
+        grammar?.forms?.masculine ||
+        (entry.surface_form && entry.surface_form.includes(' / ') ? entry.surface_form.split(' / ')[0] : '');
+      const rawFem =
+        grammar?.feminine_form?.lemma ||
+        grammar?.forms?.feminine ||
+        (entry.surface_form && entry.surface_form.includes(' / ') ? entry.surface_form.split(' / ')[1] : '');
+
+      let cleanMasc = cleanNounLemma(rawMasc);
+      let cleanFem = cleanNounLemma(rawFem);
+
+      if (!cleanMasc && !cleanFem) {
+        cleanMasc = cleanNounLemma(entry.surface_form || '');
+        cleanFem = cleanMasc;
+      } else if (!cleanMasc) {
+        cleanMasc = cleanFem;
+      } else if (!cleanFem) {
+        cleanFem = cleanMasc;
+      }
+
+      const isShared = cleanMasc.toLowerCase() === cleanFem.toLowerCase();
+      const displayTitle = isShared ? cleanMasc : `${cleanMasc} / ${cleanFem}`;
+
+      const recMascId = entry.id && entry.id.endsWith('-masc') ? entry.id : `${cardId}-masc`;
+      const recFemId = entry.id && entry.id.endsWith('-fem') ? entry.id : `${cardId}-fem`;
+
+      const formatAMasc = entry.format_a ? {
+        ...entry.format_a,
+        entry: cleanMasc,
+        grammar: {
+          ...entry.format_a.grammar,
+          gender: Gender.Masculine,
+          gender_choice: 'masculine',
+          lemma: cleanMasc,
+          underlying_article: 'le',
+          masculine_form: undefined,
+          feminine_form: undefined,
+          forms: { masculine: cleanMasc },
+        },
+      } : undefined;
+
+      const formatAFem = entry.format_a ? {
+        ...entry.format_a,
+        entry: cleanFem,
+        grammar: {
+          ...entry.format_a.grammar,
+          gender: Gender.Feminine,
+          gender_choice: 'feminine',
+          lemma: cleanFem,
+          underlying_article: 'la',
+          masculine_form: undefined,
+          feminine_form: undefined,
+          forms: { feminine: cleanFem },
+        },
+      } : undefined;
+
+      const recMasc: AtomicVocabularyRecord = {
+        id: recMascId,
+        card_id: cardId,
+        word: cleanMasc,
+        surface_form: cleanMasc,
+        normalized_form: cleanMasc.toLowerCase(),
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Masculine,
+        level: entry.level ?? 0,
+        last_review_at: entry.last_review_at ?? null,
+        next_review_at: entry.next_review_at,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        average_response_time: entry.average_response_time ?? 0,
+        skill_performance: entry.skill_performance ? JSON.parse(JSON.stringify(entry.skill_performance)) : undefined,
+        maintenance_stage: entry.maintenance_stage,
+        item_mastery: entry.item_mastery,
+        format_a: formatAMasc,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      const recFem: AtomicVocabularyRecord = {
+        id: recFemId,
+        card_id: cardId,
+        word: cleanFem,
+        surface_form: cleanFem,
+        normalized_form: cleanFem.toLowerCase(),
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Feminine,
+        level: entry.level ?? 0,
+        last_review_at: entry.last_review_at ?? null,
+        next_review_at: entry.next_review_at,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        average_response_time: entry.average_response_time ?? 0,
+        skill_performance: entry.skill_performance ? JSON.parse(JSON.stringify(entry.skill_performance)) : undefined,
+        maintenance_stage: entry.maintenance_stage,
+        item_mastery: entry.item_mastery,
+        format_a: formatAFem,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      const card: CardDisplayData = {
+        id: cardId,
+        display_title: displayTitle,
+        surface_form: displayTitle,
+        normalized_form: displayTitle.toLowerCase(),
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Both,
+        atomic_record_ids: [recMasc.id, recFem.id],
+        level: entry.level ?? 0,
+        next_review_at: entry.next_review_at,
+        last_review_at: entry.last_review_at ?? null,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        average_response_time: entry.average_response_time ?? 0,
+        skill_performance: entry.skill_performance,
+        maintenance_stage: entry.maintenance_stage,
+        item_mastery: entry.item_mastery,
+        format_a: entry.format_a,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      return { card, atomicRecords: [recMasc, recFem] };
+    }
+
+    // ── CASE 2: ADJECTIVE WITH DUAL FORMS ─────────────────────────────────────
+    if (entry.part_of_speech === PartOfSpeech.Adjective && this.isCombinedEntry(entry)) {
+      const grammar = entry.format_a?.grammar;
+      const rawMasc = grammar?.masculine || (entry.surface_form && entry.surface_form.includes(' / ') ? entry.surface_form.split(' / ')[0].trim() : '');
+      const rawFem = grammar?.feminine || (entry.surface_form && entry.surface_form.includes(' / ') ? entry.surface_form.split(' / ')[1].trim() : '');
+
+      const mascWord = rawMasc || entry.surface_form || 'Adjectif';
+      const femWord = rawFem || mascWord;
+
+      const displayTitle = mascWord === femWord ? mascWord : `${mascWord} / ${femWord}`;
+      const recMascId = entry.id && entry.id.endsWith('-masc') ? entry.id : `${cardId}-masc`;
+      const recFemId = entry.id && entry.id.endsWith('-fem') ? entry.id : `${cardId}-fem`;
+
+      const formatAMasc = entry.format_a ? {
+        ...entry.format_a,
+        entry: mascWord,
+        grammar: {
+          ...entry.format_a.grammar,
+          masculine: mascWord,
+        },
+      } : undefined;
+
+      const formatAFem = entry.format_a ? {
+        ...entry.format_a,
+        entry: femWord,
+        grammar: {
+          ...entry.format_a.grammar,
+          feminine: femWord,
+        },
+      } : undefined;
+
+      const recMasc: AtomicVocabularyRecord = {
+        id: recMascId,
+        card_id: cardId,
+        word: mascWord,
+        surface_form: mascWord,
+        normalized_form: mascWord.toLowerCase(),
+        part_of_speech: PartOfSpeech.Adjective,
+        gender: Gender.Masculine,
+        level: entry.level ?? 0,
+        last_review_at: entry.last_review_at ?? null,
+        next_review_at: entry.next_review_at,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        average_response_time: entry.average_response_time ?? 0,
+        skill_performance: entry.skill_performance ? JSON.parse(JSON.stringify(entry.skill_performance)) : undefined,
+        format_a: formatAMasc,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      const recFem: AtomicVocabularyRecord = {
+        id: recFemId,
+        card_id: cardId,
+        word: femWord,
+        surface_form: femWord,
+        normalized_form: femWord.toLowerCase(),
+        part_of_speech: PartOfSpeech.Adjective,
+        gender: Gender.Feminine,
+        level: entry.level ?? 0,
+        last_review_at: entry.last_review_at ?? null,
+        next_review_at: entry.next_review_at,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        average_response_time: entry.average_response_time ?? 0,
+        skill_performance: entry.skill_performance ? JSON.parse(JSON.stringify(entry.skill_performance)) : undefined,
+        format_a: formatAFem,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      const card: CardDisplayData = {
+        id: cardId,
+        display_title: displayTitle,
+        surface_form: displayTitle,
+        normalized_form: displayTitle.toLowerCase(),
+        part_of_speech: PartOfSpeech.Adjective,
+        atomic_record_ids: [recMasc.id, recFem.id],
+        level: entry.level ?? 0,
+        next_review_at: entry.next_review_at,
+        last_review_at: entry.last_review_at ?? null,
+        review_count: entry.review_count ?? 0,
+        successful_retrievals: entry.successful_retrievals ?? 0,
+        failed_retrievals: entry.failed_retrievals ?? 0,
+        current_streak: entry.current_streak ?? 0,
+        format_a: entry.format_a,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      return { card, atomicRecords: [recMasc, recFem] };
+    }
+
+    // ── CASE 3: GENERIC COMBINED STRING WITH " / " ────────────────────────────
+    if (typeof entry.surface_form === 'string' && entry.surface_form.includes(' / ')) {
+      const parts = entry.surface_form.split(' / ').map((p: string) => p.trim()).filter(Boolean);
+      const atomicRecords: AtomicVocabularyRecord[] = [];
+      const atomicIds: UUID[] = [];
+
+      parts.forEach((part: string, idx: number) => {
+        const id = `${cardId}-part-${idx}`;
+        atomicIds.push(id);
+        atomicRecords.push({
+          id,
+          card_id: cardId,
+          word: part,
+          surface_form: part,
+          normalized_form: part.toLowerCase(),
+          part_of_speech: entry.part_of_speech,
+          gender: entry.gender,
+          level: entry.level ?? 0,
+          last_review_at: entry.last_review_at ?? null,
+          next_review_at: entry.next_review_at,
+          review_count: entry.review_count ?? 0,
+          successful_retrievals: entry.successful_retrievals ?? 0,
+          failed_retrievals: entry.failed_retrievals ?? 0,
+          current_streak: entry.current_streak ?? 0,
+          format_a: entry.format_a,
+          created_at: createdAt,
+          updated_at: updatedAt,
+        });
+      });
+
+      const card: CardDisplayData = {
+        id: cardId,
+        display_title: entry.surface_form,
+        surface_form: entry.surface_form,
+        normalized_form: entry.surface_form.toLowerCase(),
+        part_of_speech: entry.part_of_speech,
+        gender: entry.gender,
+        atomic_record_ids: atomicIds,
+        level: entry.level ?? 0,
+        next_review_at: entry.next_review_at,
+        last_review_at: entry.last_review_at ?? null,
+        format_a: entry.format_a,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+
+      return { card, atomicRecords };
+    }
+
+    // ── CASE 4: SINGLE / ATOMIC ITEM ──────────────────────────────────────────
+    const atomicId: UUID = entry.id || cardId;
+    const cleanWord = entry.word || cleanNounLemma(entry.surface_form || '') || entry.surface_form || '';
+    const surfaceForm = entry.surface_form || cleanWord;
+
+    const singleRecord: AtomicVocabularyRecord = {
+      id: atomicId,
+      card_id: cardId,
+      word: cleanWord,
+      surface_form: surfaceForm,
+      normalized_form: surfaceForm.toLowerCase(),
+      part_of_speech: entry.part_of_speech,
+      gender: entry.gender,
+      level: entry.level ?? 0,
+      last_review_at: entry.last_review_at ?? null,
+      next_review_at: entry.next_review_at,
+      review_count: entry.review_count ?? 0,
+      successful_retrievals: entry.successful_retrievals ?? 0,
+      failed_retrievals: entry.failed_retrievals ?? 0,
+      current_streak: entry.current_streak ?? 0,
+      average_response_time: entry.average_response_time ?? 0,
+      skill_performance: entry.skill_performance,
+      maintenance_stage: entry.maintenance_stage,
+      item_mastery: entry.item_mastery,
+      format_a: entry.format_a,
+      conjugation_units: entry.conjugation_units,
+      positional_units: entry.positional_units,
+      adjective_units: entry.adjective_units,
+      created_at: createdAt,
+      updated_at: updatedAt,
+    };
+
+    const card: CardDisplayData = {
+      id: cardId,
+      display_title: entry.display_title || surfaceForm,
+      surface_form: surfaceForm,
+      normalized_form: surfaceForm.toLowerCase(),
+      part_of_speech: entry.part_of_speech,
+      gender: entry.gender,
+      atomic_record_ids: [atomicId],
+      level: entry.level ?? 0,
+      next_review_at: entry.next_review_at,
+      last_review_at: entry.last_review_at ?? null,
+      review_count: entry.review_count ?? 0,
+      successful_retrievals: entry.successful_retrievals ?? 0,
+      failed_retrievals: entry.failed_retrievals ?? 0,
+      current_streak: entry.current_streak ?? 0,
+      average_response_time: entry.average_response_time ?? 0,
+      skill_performance: entry.skill_performance,
+      maintenance_stage: entry.maintenance_stage,
+      item_mastery: entry.item_mastery,
+      format_a: entry.format_a,
+      created_at: createdAt,
+      updated_at: updatedAt,
+    };
+
+    return { card, atomicRecords: [singleRecord] };
+  }
+
+  /**
+   * Synchronizes the parent CardDisplayData whenever one of its
+   * constituent atomic records is updated.
+   */
+  private syncCardForAtomicRecord(record: AtomicVocabularyRecord): void {
+    if (!record.card_id) return;
+    const cardIndex = this.cards.findIndex(
+      (c) => c.id === record.card_id || (c.atomic_record_ids && c.atomic_record_ids.includes(record.id)),
+    );
+    if (cardIndex === -1) return;
+
+    const card = this.cards[cardIndex];
+    const siblings = this.items.filter(
+      (it) => it.card_id === card.id || card.atomic_record_ids.includes(it.id),
+    );
+
+    if (siblings.length === 0) return;
+
+    // Card presentation level represents the minimum level of its atomic items
+    const minLevel = Math.min(...siblings.map((s) => s.level ?? 0)) as VocabLevel;
+
+    // Earliest next_review_at
+    const validNextDates = siblings
+      .map((s) => s.next_review_at)
+      .filter(Boolean)
+      .map((d) => new Date(d!).getTime());
+
+    const earliestNext =
+      validNextDates.length > 0 ? new Date(Math.min(...validNextDates)).toISOString() : undefined;
+
+    // Most recent last_review_at
+    const validLastDates = siblings
+      .map((s) => s.last_review_at)
+      .filter(Boolean)
+      .map((d) => new Date(d!).getTime());
+
+    const latestLast =
+      validLastDates.length > 0 ? new Date(Math.max(...validLastDates)).toISOString() : null;
+
+    const totalReviewCount = siblings.reduce((sum, s) => sum + (s.review_count ?? 0), 0);
+    const totalSuccess = siblings.reduce((sum, s) => sum + (s.successful_retrievals ?? 0), 0);
+    const totalFailed = siblings.reduce((sum, s) => sum + (s.failed_retrievals ?? 0), 0);
+    const minStreak = Math.min(...siblings.map((s) => s.current_streak ?? 0));
+
+    this.cards[cardIndex] = {
+      ...card,
+      level: minLevel,
+      next_review_at: earliestNext,
+      last_review_at: latestLast,
+      review_count: totalReviewCount,
+      successful_retrievals: totalSuccess,
+      failed_retrievals: totalFailed,
+      current_streak: minStreak,
+      updated_at: new Date(),
+    };
+  }
+
+  /**
+   * Reconciles cards and atomic items to ensure strict consistency.
+   */
+  private reconcileCardsAndItems(): void {
+    // If any item has no matching card, create one
+    for (const item of this.items) {
+      const hasCard = this.cards.some(
+        (c) => c.id === item.card_id || (c.atomic_record_ids && c.atomic_record_ids.includes(item.id)),
+      );
+      if (!hasCard) {
+        const { card } = this.decomposeEntry(item);
+        item.card_id = card.id;
+        this.cards.push(card);
+      }
+    }
+
+    // Synchronize all cards with their atomic records
+    for (const card of this.cards) {
+      const records = this.items.filter(
+        (it) => it.card_id === card.id || (card.atomic_record_ids && card.atomic_record_ids.includes(it.id)),
+      );
+      if (records.length > 0) {
+        card.atomic_record_ids = records.map((r) => r.id);
+        card.level = Math.min(...records.map((r) => r.level ?? 0)) as VocabLevel;
+        const nextReviewTimes = records
+          .map((r) => r.next_review_at)
+          .filter(Boolean)
+          .map((d) => new Date(d!).getTime());
+        if (nextReviewTimes.length > 0) {
+          card.next_review_at = new Date(Math.min(...nextReviewTimes)).toISOString();
+        }
+      }
+    }
+  }
+
   private loadFromStorage(): void {
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
         this.items = [];
+        this.cards = [];
         return;
       }
-      // Purge all legacy trial vocabulary and session data to guarantee 0 initial words
+
+      // Purge all legacy trial vocabulary and session data
       for (const legacyKey of LEGACY_STORAGE_KEYS) {
         if (localStorage.getItem(legacyKey)) {
           localStorage.removeItem(legacyKey);
         }
       }
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          // Filter out any legacy dummy seed items (e.g. id starts with vocab-)
-          const userItems = parsed
-            .filter(
-              (item: VocabularyItem) =>
-                typeof item.id === 'string' && !item.id.startsWith('vocab-'),
-            )
-            .map((item: VocabularyItem) => this.ensureSrsFields(item));
 
-          this.items = userItems;
-          this.saveToStorage();
-          return;
+      const rawItems = localStorage.getItem(STORAGE_KEY_ITEMS);
+      const rawCards = localStorage.getItem(STORAGE_KEY_CARDS);
+
+      let parsedItems: any[] = [];
+      let parsedCards: any[] = [];
+
+      if (rawItems) {
+        try {
+          const p = JSON.parse(rawItems);
+          if (Array.isArray(p)) parsedItems = p;
+        } catch (e) {
+          console.warn('Failed to parse items from storage:', e);
         }
       }
-      this.items = [];
+
+      if (rawCards) {
+        try {
+          const p = JSON.parse(rawCards);
+          if (Array.isArray(p)) parsedCards = p;
+        } catch (e) {
+          console.warn('Failed to parse cards from storage:', e);
+        }
+      }
+
+      // Filter out any legacy dummy seed items
+      parsedItems = parsedItems.filter(
+        (item) => typeof item.id === 'string' && !item.id.startsWith('vocab-'),
+      );
+      parsedCards = parsedCards.filter(
+        (card) => typeof card.id === 'string' && !card.id.startsWith('vocab-'),
+      );
+
+      // ── MIGRATION CHECK ──────────────────────────────────────────────────
+      // If cards are missing OR existing items contain legacy combined forms:
+      const needsMigration =
+        (parsedCards.length === 0 && parsedItems.length > 0) ||
+        parsedItems.some((item) => this.isCombinedEntry(item));
+
+      if (needsMigration) {
+        const migratedItems: AtomicVocabularyRecord[] = [];
+        const migratedCards: CardDisplayData[] = [];
+
+        for (const item of parsedItems) {
+          const { card, atomicRecords } = this.decomposeEntry(item);
+          migratedCards.push(card);
+          migratedItems.push(...atomicRecords);
+        }
+
+        this.items = migratedItems.map((it) => this.ensureSrsFields(it));
+        this.cards = migratedCards;
+        this.saveToStorage();
+        return;
+      }
+
+      this.items = parsedItems.map((it) => this.ensureSrsFields(it));
+      this.cards = parsedCards;
+      this.reconcileCardsAndItems();
+      this.saveToStorage();
     } catch (e) {
       console.error('Failed to load Master Vocabulary List from storage:', e);
       this.items = [];
+      this.cards = [];
     }
   }
 
   private saveToStorage(): void {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+        localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(this.items));
+        localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(this.cards));
       }
     } catch (e) {
       console.error('Failed to save Master Vocabulary List to storage:', e);
@@ -147,23 +700,31 @@ class MasterVocabularyService {
   }
 
   private notify(): void {
-    const snapshot = this.getAllItems();
+    const itemSnapshot = this.getAllItems();
     for (const listener of this.listeners) {
       try {
-        listener(snapshot);
+        listener(itemSnapshot);
       } catch (err) {
         console.error('Error in MasterVocabularyService listener:', err);
+      }
+    }
+
+    const cardSnapshot = this.getAllCards();
+    for (const listener of this.cardListeners) {
+      try {
+        listener(cardSnapshot);
+      } catch (err) {
+        console.error('Error in MasterVocabularyService cardListener:', err);
       }
     }
   }
 
   /**
-   * Subscribe to changes in the Master Vocabulary List.
-   * Returns an unsubscribe callback.
+   * Subscribe to changes in the Atomic Vocabulary Memory List.
+   * Source of truth for games, SRS retrieval, and algorithms.
    */
   public subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    // Immediate callback with current snapshot
     listener(this.getAllItems());
     return () => {
       this.listeners.delete(listener);
@@ -171,34 +732,79 @@ class MasterVocabularyService {
   }
 
   /**
-   * Returns a copy of all saved vocabulary items.
+   * Subscribe to changes in the Card Display Data List.
+   * Source of truth for card presentation in the UI catalog.
    */
-  public getAllItems(): VocabularyItem[] {
+  public subscribeCards(listener: CardListener): () => void {
+    this.cardListeners.add(listener);
+    listener(this.getAllCards());
+    return () => {
+      this.cardListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Returns a copy of all Atomic Vocabulary Records.
+   * Games and SRS retrieval consume this.
+   */
+  public getAllItems(): AtomicVocabularyRecord[] {
     return [...this.items];
   }
 
-  public getAll(): VocabularyItem[] {
+  public getAll(): AtomicVocabularyRecord[] {
     return this.getAllItems();
   }
 
   /**
-   * Retrieves a single vocabulary item by unique ID.
+   * Returns a copy of all Card Display Data items.
+   * Card catalog UI consumes this.
    */
-  public getItemById(id: UUID): VocabularyItem | undefined {
+  public getAllCards(): CardDisplayData[] {
+    return [...this.cards];
+  }
+
+  public getCards(): CardDisplayData[] {
+    return this.getAllCards();
+  }
+
+  /**
+   * Retrieves a single atomic vocabulary item by unique ID.
+   * Each record is independently addressable.
+   */
+  public getItemById(id: UUID): AtomicVocabularyRecord | undefined {
     return this.items.find((item) => item.id === id);
+  }
+
+  /**
+   * Retrieves a single card display representation by card ID.
+   */
+  public getCardById(id: UUID): CardDisplayData | undefined {
+    return this.cards.find((card) => card.id === id);
+  }
+
+  /**
+   * Retrieves all atomic vocabulary records belonging to a given card ID.
+   */
+  public getItemsByCardId(cardId: UUID): AtomicVocabularyRecord[] {
+    const card = this.cards.find((c) => c.id === cardId);
+    if (!card) {
+      return this.items.filter((it) => it.card_id === cardId);
+    }
+    const ids = new Set(card.atomic_record_ids || []);
+    return this.items.filter((it) => it.card_id === cardId || ids.has(it.id));
   }
 
   /**
    * Retrieves all items filtered by specific SRS level (0–5).
    */
-  public getItemsByLevel(level: VocabLevel): VocabularyItem[] {
+  public getItemsByLevel(level: VocabLevel): AtomicVocabularyRecord[] {
     return this.items.filter((item) => item.level === level);
   }
 
   /**
-   * Returns all items currently due for active retrieval.
+   * Returns all atomic items currently due for active retrieval.
    */
-  public getDueItems(asOf: Date = new Date()): VocabularyItem[] {
+  public getDueItems(asOf: Date = new Date()): AtomicVocabularyRecord[] {
     return this.items
       .filter((it) => srsEngineService.isDue(it.next_review_at || '', asOf))
       .sort(
@@ -209,37 +815,76 @@ class MasterVocabularyService {
   }
 
   /**
-   * Calculates live statistics across all items in the Master List.
+   * Calculates live statistics across all atomic items in the Master List.
    */
   public getStatistics(): VocabularyStatistics {
     return calculateVocabularyStats(this.items);
   }
 
   /**
-   * Adds a new vocabulary item to the Master List.
-   * Preserves distinct lexical identity and initializes SRS memory data.
+   * Adds an entry to the Master List.
+   * Decomposes combined entries into CardDisplayData and AtomicVocabularyRecord(s).
    */
-  public addItem(item: VocabularyItem): VocabularyItem {
-    const itemWithSrs = this.ensureSrsFields(item);
-    const existingIndex = this.items.findIndex((it) => it.id === itemWithSrs.id);
-    if (existingIndex >= 0) {
-      this.items[existingIndex] = { ...itemWithSrs, updated_at: new Date() };
+  public addItem(entry: VocabularyItem | CardDisplayData): VocabularyItem {
+    const { card, atomicRecords } = this.decomposeEntry(entry);
+
+    // Upsert card
+    const existingCardIndex = this.cards.findIndex((c) => c.id === card.id);
+    if (existingCardIndex >= 0) {
+      this.cards[existingCardIndex] = { ...card, updated_at: new Date() };
     } else {
-      this.items = [itemWithSrs, ...this.items];
+      this.cards = [card, ...this.cards];
     }
+
+    // Upsert atomic records
+    for (const rec of atomicRecords) {
+      const withSrs = this.ensureSrsFields(rec);
+      const existingIndex = this.items.findIndex((it) => it.id === withSrs.id);
+      if (existingIndex >= 0) {
+        this.items[existingIndex] = { ...withSrs, updated_at: new Date() };
+      } else {
+        this.items = [withSrs, ...this.items];
+      }
+    }
+
     this.saveToStorage();
-    return itemWithSrs;
+    return atomicRecords[0];
   }
 
   /**
-   * Records the outcome of an active retrieval review for an item.
-   * Computes SRS state transition and schedules next review timestamp.
+   * Directly adds an atomic vocabulary item.
+   */
+  public addAtomicItem(record: AtomicVocabularyRecord): AtomicVocabularyRecord {
+    const withSrs = this.ensureSrsFields(record);
+    const existingIndex = this.items.findIndex((it) => it.id === withSrs.id);
+    if (existingIndex >= 0) {
+      this.items[existingIndex] = { ...withSrs, updated_at: new Date() };
+    } else {
+      this.items = [withSrs, ...this.items];
+    }
+
+    // Ensure matching card exists or syncs
+    if (withSrs.card_id) {
+      this.syncCardForAtomicRecord(withSrs);
+    } else {
+      const { card } = this.decomposeEntry(withSrs);
+      withSrs.card_id = card.id;
+      this.cards.push(card);
+    }
+
+    this.saveToStorage();
+    return withSrs;
+  }
+
+  /**
+   * Records the outcome of an active retrieval review for an individual atomic item.
+   * Computes SRS state transition and synchronizes the parent card representation.
    */
   public recordRetrieval(
     id: UUID,
     input: RetrievalEvaluationInput,
     now: Date = new Date(),
-  ): VocabularyItem | undefined {
+  ): AtomicVocabularyRecord | undefined {
     const item = this.getItemById(id);
     if (!item) return undefined;
 
@@ -259,7 +904,7 @@ class MasterVocabularyService {
 
     const evaluated = srsEngineService.evaluateRetrieval(currentSrsData, input, now, item);
 
-    const updatedItem: VocabularyItem = {
+    const updatedItem: AtomicVocabularyRecord = {
       ...item,
       level: evaluated.level,
       last_review_at: evaluated.last_review_at,
@@ -275,7 +920,16 @@ class MasterVocabularyService {
       updated_at: now,
     };
 
-    return this.addItem(updatedItem);
+    const existingIndex = this.items.findIndex((it) => it.id === id);
+    if (existingIndex >= 0) {
+      this.items[existingIndex] = updatedItem;
+    } else {
+      this.items = [updatedItem, ...this.items];
+    }
+
+    this.syncCardForAtomicRecord(updatedItem);
+    this.saveToStorage();
+    return updatedItem;
   }
 
   /**
@@ -287,7 +941,7 @@ class MasterVocabularyService {
     person: VerbConjugationPerson,
     input: RetrievalEvaluationInput,
     now: Date = new Date(),
-  ): VocabularyItem | undefined {
+  ): AtomicVocabularyRecord | undefined {
     const item = this.getItemById(id);
     if (!item || item.part_of_speech !== PartOfSpeech.Verb) return undefined;
 
@@ -295,18 +949,19 @@ class MasterVocabularyService {
     const existingIndex = this.items.findIndex((it) => it.id === id);
     if (existingIndex >= 0) {
       this.items[existingIndex] = updatedItem;
+      this.syncCardForAtomicRecord(updatedItem);
       this.saveToStorage();
     }
     return updatedItem;
   }
 
   /**
-   * Updates an existing vocabulary item.
+   * Updates an existing atomic vocabulary item.
    */
   public updateItem(
     id: UUID,
-    updates: Partial<VocabularyItem>,
-  ): VocabularyItem | undefined {
+    updates: Partial<AtomicVocabularyRecord>,
+  ): AtomicVocabularyRecord | undefined {
     const index = this.items.findIndex((it) => it.id === id);
     if (index === -1) return undefined;
 
@@ -316,15 +971,16 @@ class MasterVocabularyService {
       updated_at: new Date(),
     };
     this.items[index] = updated;
+    this.syncCardForAtomicRecord(updated);
     this.saveToStorage();
     return updated;
   }
 
   /**
-   * Manually sets the SRS memory level (0–5) of an item.
-   * Recalculates next_review_at interval accordingly.
+   * Manually sets the SRS memory level (0–5) of an atomic item.
+   * Recalculates next_review_at interval accordingly and synchronizes parent card.
    */
-  public updateItemLevel(id: UUID, level: VocabLevel): VocabularyItem | undefined {
+  public updateItemLevel(id: UUID, level: VocabLevel): AtomicVocabularyRecord | undefined {
     const item = this.getItemById(id);
     if (!item) return undefined;
 
@@ -339,12 +995,202 @@ class MasterVocabularyService {
   }
 
   /**
-   * Removes an item from the Master Vocabulary List by ID.
+   * Helper to locate both the card and all constituent atomic records for an ID.
    */
-  public removeItem(id: UUID): boolean {
-    const prevCount = this.items.length;
-    this.items = this.items.filter((item) => item.id !== id);
-    if (this.items.length !== prevCount) {
+  public resolveCardAndAtomicRecords(idOrCardId: UUID): {
+    card?: CardDisplayData;
+    atomicRecords: AtomicVocabularyRecord[];
+  } {
+    let card = this.cards.find((c) => c.id === idOrCardId);
+    let atomicRecords: AtomicVocabularyRecord[] = [];
+
+    if (card) {
+      const ids = new Set(card.atomic_record_ids || []);
+      atomicRecords = this.items.filter(
+        (it) => it.card_id === card!.id || ids.has(it.id),
+      );
+    } else {
+      const atomicItem = this.items.find((it) => it.id === idOrCardId);
+      if (atomicItem) {
+        atomicRecords = [atomicItem];
+        if (atomicItem.card_id) {
+          card = this.cards.find(
+            (c) =>
+              c.id === atomicItem.card_id ||
+              (c.atomic_record_ids && c.atomic_record_ids.includes(atomicItem.id)),
+          );
+          if (card) {
+            const ids = new Set(card.atomic_record_ids || []);
+            atomicRecords = this.items.filter(
+              (it) => it.card_id === card!.id || ids.has(it.id),
+            );
+          }
+        }
+      }
+    }
+
+    return { card, atomicRecords };
+  }
+
+  /**
+   * Inline editing of meaning: Updates the meaning in Format A across the card
+   * and all constituent atomic memory records.
+   */
+  public updateMeaning(
+    idOrCardId: UUID,
+    field: 'en' | 'vi' | 'trc_en' | 'trc_vi' | 'sau_en' | 'sau_vi',
+    value: string,
+  ): { card?: CardDisplayData; atomicRecords: AtomicVocabularyRecord[] } | undefined {
+    const { card, atomicRecords } = this.resolveCardAndAtomicRecords(idOrCardId);
+    if (!card && atomicRecords.length === 0) return undefined;
+
+    const applyToFormatA = (formatA?: FormatAData): void => {
+      if (!formatA) return;
+      if (field === 'en') {
+        formatA.meaning_en = value;
+      } else if (field === 'vi') {
+        formatA.meaning_vi = value;
+      } else if (field === 'trc_en') {
+        if (!formatA.trc_meaning) formatA.trc_meaning = {};
+        formatA.trc_meaning.en = value;
+        if (formatA.grammar?.pos === PartOfSpeech.Adjective) {
+          const adjG = formatA.grammar as any;
+          if (adjG.before_entry) adjG.before_entry.meaning_en = value;
+        }
+      } else if (field === 'trc_vi') {
+        if (!formatA.trc_meaning) formatA.trc_meaning = {};
+        formatA.trc_meaning.vi = value;
+        if (formatA.grammar?.pos === PartOfSpeech.Adjective) {
+          const adjG = formatA.grammar as any;
+          if (adjG.before_entry) adjG.before_entry.meaning_vi = value;
+        }
+      } else if (field === 'sau_en') {
+        if (!formatA.sau_meaning) formatA.sau_meaning = {};
+        formatA.sau_meaning.en = value;
+        if (formatA.grammar?.pos === PartOfSpeech.Adjective) {
+          const adjG = formatA.grammar as any;
+          if (adjG.after_entry) adjG.after_entry.meaning_en = value;
+        }
+      } else if (field === 'sau_vi') {
+        if (!formatA.sau_meaning) formatA.sau_meaning = {};
+        formatA.sau_meaning.vi = value;
+        if (formatA.grammar?.pos === PartOfSpeech.Adjective) {
+          const adjG = formatA.grammar as any;
+          if (adjG.after_entry) adjG.after_entry.meaning_vi = value;
+        }
+      }
+    };
+
+    if (card && card.format_a) {
+      applyToFormatA(card.format_a);
+      card.updated_at = new Date();
+    }
+
+    for (const rec of atomicRecords) {
+      if (rec.format_a) {
+        applyToFormatA(rec.format_a);
+        rec.updated_at = new Date();
+      }
+    }
+
+    this.saveToStorage();
+    return { card, atomicRecords };
+  }
+
+  /**
+   * Inline editing of synonym text and/or gender.
+   * Updates all corresponding records in memory and storage.
+   */
+  public updateSynonym(
+    idOrCardId: UUID,
+    index: number,
+    text?: string,
+    gender?: RelatedWordGender,
+    context?: 'before' | 'after',
+  ): { card?: CardDisplayData; atomicRecords: AtomicVocabularyRecord[] } | undefined {
+    return this.updateRelatedWord(idOrCardId, 'synonyms', index, text, gender, context);
+  }
+
+  /**
+   * Inline editing of antonym text and/or gender.
+   * Updates all corresponding records in memory and storage.
+   */
+  public updateAntonym(
+    idOrCardId: UUID,
+    index: number,
+    text?: string,
+    gender?: RelatedWordGender,
+    context?: 'before' | 'after',
+  ): { card?: CardDisplayData; atomicRecords: AtomicVocabularyRecord[] } | undefined {
+    return this.updateRelatedWord(idOrCardId, 'antonyms', index, text, gender, context);
+  }
+
+  private updateRelatedWord(
+    idOrCardId: UUID,
+    type: 'synonyms' | 'antonyms',
+    index: number,
+    text?: string,
+    gender?: RelatedWordGender,
+    context?: 'before' | 'after',
+  ): { card?: CardDisplayData; atomicRecords: AtomicVocabularyRecord[] } | undefined {
+    const { card, atomicRecords } = this.resolveCardAndAtomicRecords(idOrCardId);
+    if (!card && atomicRecords.length === 0) return undefined;
+
+    const applyToArray = (arr?: (string | LexicalRelatedWord)[]): void => {
+      if (!arr || index < 0 || index >= arr.length) return;
+      const current = normalizeRelatedWord(arr[index]);
+      if (text !== undefined) current.word = text;
+      if (gender !== undefined) current.gender = gender;
+      arr[index] = current;
+    };
+
+    const applyToFormatA = (formatA?: FormatAData): void => {
+      if (!formatA) return;
+      if (context === 'before' && formatA.grammar?.pos === PartOfSpeech.Adjective) {
+        const adjG = formatA.grammar as any;
+        if (adjG.before_entry) applyToArray(adjG.before_entry[type]);
+        else applyToArray(formatA[type]);
+      } else if (context === 'after' && formatA.grammar?.pos === PartOfSpeech.Adjective) {
+        const adjG = formatA.grammar as any;
+        if (adjG.after_entry) applyToArray(adjG.after_entry[type]);
+        else applyToArray(formatA[type]);
+      } else {
+        applyToArray(formatA[type]);
+      }
+    };
+
+    if (card && card.format_a) {
+      applyToFormatA(card.format_a);
+      card.updated_at = new Date();
+    }
+
+    for (const rec of atomicRecords) {
+      if (rec.format_a) {
+        applyToFormatA(rec.format_a);
+        rec.updated_at = new Date();
+      }
+    }
+
+    this.saveToStorage();
+    return { card, atomicRecords };
+  }
+
+  /**
+   * Removes a card and all of its associated atomic records.
+   */
+  public removeCard(cardId: UUID): boolean {
+    const card = this.cards.find((c) => c.id === cardId);
+    const prevCardCount = this.cards.length;
+    this.cards = this.cards.filter((c) => c.id !== cardId);
+
+    if (card && card.atomic_record_ids) {
+      const idsToRemove = new Set(card.atomic_record_ids);
+      this.items = this.items.filter((it) => !idsToRemove.has(it.id) && it.card_id !== cardId);
+    } else {
+      this.items = this.items.filter((it) => it.card_id !== cardId && it.id !== cardId);
+    }
+
+    if (this.cards.length !== prevCardCount) {
       this.saveToStorage();
       return true;
     }
@@ -352,24 +1198,58 @@ class MasterVocabularyService {
   }
 
   /**
-   * Clears all items from the Master List.
+   * Removes an item from the Master Vocabulary List by ID.
+   * If the ID is a card ID, removes the card and its atomic items.
+   * If the ID is an atomic record ID, removes that record and updates parent card.
+   */
+  public removeItem(id: UUID): boolean {
+    // If id matches a card, remove the whole card and its atomic records
+    if (this.cards.some((c) => c.id === id)) {
+      return this.removeCard(id);
+    }
+
+    // Otherwise remove the specific atomic item
+    const item = this.items.find((it) => it.id === id);
+    if (!item) return false;
+
+    this.items = this.items.filter((it) => it.id !== id);
+
+    // Update parent card
+    if (item.card_id) {
+      const parentCard = this.cards.find((c) => c.id === item.card_id);
+      if (parentCard) {
+        const remaining = this.items.filter((it) => it.card_id === item.card_id);
+        if (remaining.length === 0) {
+          this.cards = this.cards.filter((c) => c.id !== item.card_id);
+        } else {
+          parentCard.atomic_record_ids = remaining.map((r) => r.id);
+          parentCard.level = Math.min(...remaining.map((r) => r.level ?? 0)) as VocabLevel;
+        }
+      }
+    }
+
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Clears all items and cards from storage.
    */
   public clearAll(): void {
     this.items = [];
+    this.cards = [];
     this.saveToStorage();
   }
 
   /**
    * Searches the Master Vocabulary List based on spelling similarity.
    */
-  public searchBySpelling(query: string): VocabularyItem[] {
+  public searchBySpelling(query: string): AtomicVocabularyRecord[] {
     return searchBySpelling(this.items, query);
   }
 
   /**
    * Returns a clean list of base/surface words that the user has already learned.
-   * Used by example generators, games, and cloze tests to enable repeated exposure
-   * without unnatural forcing.
    */
   public getLearnedWords(): { id: UUID; word: string; pos: string; level: VocabLevel }[] {
     return this.items.map((item) => {

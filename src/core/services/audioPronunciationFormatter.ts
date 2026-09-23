@@ -1,4 +1,4 @@
-import { VocabularyItem } from '../models/vocabulary';
+import { VocabularyItem, CardDisplayData } from '../models/vocabulary';
 import { PartOfSpeech, Gender } from '../models/types';
 import { FormatANounGrammar } from '../models/lexical';
 import { formatNounPresentation, formatSingleNounPresentation } from './nounPresentationService';
@@ -48,7 +48,7 @@ export function hasFrenchArticle(text: string): boolean {
  *    - Clean quotes and read natural French sentence.
  */
 export function formatPronunciationText(
-  input: VocabularyItem | { text: string; pos?: PartOfSpeech; gender?: Gender; grammar?: any; targetGender?: AdjectiveTargetGender | Gender },
+  input: VocabularyItem | CardDisplayData | { text: string; pos?: PartOfSpeech; gender?: Gender; grammar?: any; targetGender?: AdjectiveTargetGender | Gender },
   targetGenderOverride?: AdjectiveTargetGender | Gender,
 ): string {
   // Case A: Input is a full VocabularyItem

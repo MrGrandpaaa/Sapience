@@ -56,6 +56,9 @@ export function GameCardListeningWriting({
           size="xl"
           title="Click to replay audio"
         />
+        {question.genderTag && (
+          <span className="noun-gender-tag">{question.genderTag}</span>
+        )}
         {question.promptSubtext && (
           <p className="audio-center-note">{question.promptSubtext}</p>
         )}
@@ -104,7 +107,7 @@ export function GameCardListeningWriting({
         )}
       </form>
 
-      {/* ── Detailed Evaluation Breakdown ── */}
+      {/* ── Evaluation Breakdown ── */}
       {evaluation && (
         <div
           className={`game-eval-box ${
@@ -117,14 +120,13 @@ export function GameCardListeningWriting({
             </span>
             <strong className="eval-title">{evaluation.feedbackTitle}</strong>
           </div>
-          <p className="eval-message">{evaluation.feedbackMessage}</p>
 
           {!evaluation.isCorrect && (
             <div className="eval-correct-target">
               <span className="target-label">Correct answer:</span>
-              <strong className="target-text">
-                « {question.canonicalAnswer} »
-              </strong>
+              <span className="target-text">
+                {question.canonicalAnswer}
+              </span>
             </div>
           )}
 

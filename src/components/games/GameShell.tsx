@@ -317,8 +317,8 @@ export function GameShell({
                   onClick={handleNextQuestion}
                 >
                   {currentIndex + 1 < questions.length
-                    ? 'Next Question → (Spacebar)'
-                    : 'View Summary Results →'}
+                    ? 'Next Question'
+                    : 'View Summary Results'}
                 </button>
               </div>
             )}

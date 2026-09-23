@@ -5,102 +5,202 @@ import {
   QuestionEvaluation,
 } from '../../../models/games';
 import { frenchTextDiffService } from '../frenchTextDiffService';
-import { formatPronunciationText } from '../../audioPronunciationFormatter';
-import { isElisionNoun } from '../../nounPresentationService';
-import { selectAdjectiveTarget, AdjectiveTargetGender } from '../../adjectivePresentationService';
+import {
+  cleanNounLemma,
+  isElisionNoun,
+  KNOWN_SHARED_GENDER_NOUNS,
+} from '../../nounPresentationService';
+import {
+  selectAdjectiveTarget,
+  getAdjectiveForms,
+  AdjectiveTargetGender,
+} from '../../adjectivePresentationService';
+import { cleanLexicalText } from '../../audioPronunciationFormatter';
 
 /**
- * GAME 1 ENGINE: LISTENING -> WRITING
+ * GAME 1 ENGINE: LISTENING -> WRITING (DICTATION)
  *
- * Rules:
- * - Website plays French audio.
- * - User types the French word or phrase.
- * - Evaluates: spelling, accents, apostrophes, correct form, and articles (for nouns).
- * - For Adjectives (§2, §4, §5): Tests exactly ONE gender target ('grand' or 'grande').
- *   Audio plays ONLY that target. User types ONLY that target.
+ * Rules (Prompt 4):
+ * - Website plays audio for exactly ONE atomic word/form (e.g. 'compagnon' or 'compagne').
+ * - Audio must NEVER pronounce combined forms ('compagnon / compagne').
+ * - Target, audio, canonical answer, acceptable answers, and evaluation must all derive from
+ *   the same atomic stored vocabulary record.
+ * - If homophonic masculine/feminine records (identical spelling and pronunciation):
+ *   Display the appropriate gender tag (e.g. '(n, mas)' or '(n, fem)') without explanatory sentences.
+ * - Acceptable answer for dictation:
+ *   A. The stored lexical form itself (bare word)
+ *   OR
+ *   B. The same lexical form preceded by its valid French gender/article marker (un/le for mas, une/la for fem).
+ *   - The exact accepted article must correspond to the stored gender.
+ *   - Opposite gender articles are strictly rejected.
+ * - Incorrect result displays ONLY: Incorrect, Correct answer, Meaning.
+ * - Correct result displays ONLY: Correct, Meaning.
  */
 export class ListeningWritingEngine {
   /**
-   * Generates a Game 1 question for the target vocabulary item.
+   * Generates a Game 1 question for the target atomic vocabulary item.
    */
   public generateQuestion(
     item: VocabularyItem,
-    targetGender?: AdjectiveTargetGender,
+    targetGenderOrAllVocab?: AdjectiveTargetGender | VocabularyItem[],
+    explicitTargetGender?: AdjectiveTargetGender,
   ): ListeningWritingQuestion {
+    const allVocab: VocabularyItem[] = Array.isArray(targetGenderOrAllVocab)
+      ? targetGenderOrAllVocab
+      : [];
+    const targetGender: AdjectiveTargetGender | undefined = Array.isArray(targetGenderOrAllVocab)
+      ? explicitTargetGender
+      : targetGenderOrAllVocab;
+
     const isNoun = item.part_of_speech === PartOfSpeech.Noun;
     const isAdj = item.part_of_speech === PartOfSpeech.Adjective;
 
-    // ── ADJECTIVE HANDLING (§2, §4, §5) ──────────────────────────────────────
+    let effGender: AdjectiveTargetGender =
+      targetGender || (item.gender === Gender.Feminine ? 'feminine' : 'masculine');
+
+    let cleanTargetWord = '';
+    let targetPosition: any = undefined;
+    let adjectiveTargetId: string | undefined = undefined;
+
     if (isAdj) {
-      const adjTarget = selectAdjectiveTarget(item, targetGender);
-      const targetForm = adjTarget ? adjTarget.form : item.surface_form.split(' / ')[0].trim();
-      const effGender = adjTarget ? adjTarget.gender : (targetGender || 'masculine');
-
-      const genderLabel = effGender === 'feminine' ? 'féminin' : 'masculin';
-      const posNote = adjTarget?.positionBadge ? ` • Position: ${adjTarget.positionBadge}` : '';
-      const promptSubtext = `Note: Adjectif (${genderLabel})${posNote}. Pay attention to spelling and accents.`;
-
-      return {
-        id: `lw-${item.id}-${adjTarget?.id || effGender}-${Date.now()}`,
-        gameType: 'listening_writing',
-        targetItem: item,
-        prompt: 'Listen to the pronunciation and transcribe the French vocabulary accurately:',
-        promptSubtext,
-        audioText: targetForm,
-        canonicalAnswer: targetForm,
-        acceptableAnswers: [targetForm],
-        requiresArticle: false,
-        hintVietnamese: adjTarget?.meaning_vi || adjTarget?.meaning_en || item.format_a?.meaning_vi || item.format_a?.meaning_en,
-        partOfSpeech: PartOfSpeech.Adjective,
-        targetGender: effGender,
-        targetForm,
-        targetPosition: adjTarget?.position,
-        adjectiveTargetId: adjTarget?.id,
-      };
+      const adjTarget = selectAdjectiveTarget(item, effGender);
+      if (adjTarget) {
+        cleanTargetWord = adjTarget.form;
+        effGender = adjTarget.gender;
+        targetPosition = adjTarget.position;
+        adjectiveTargetId = adjTarget.id;
+      } else {
+        const forms = getAdjectiveForms(item);
+        const chosen =
+          (effGender === 'feminine' ? forms.feminine : forms.masculine) ||
+          cleanLexicalText(item.surface_form).split(/\s*\/\s*/)[effGender === 'feminine' ? 1 : 0] ||
+          cleanLexicalText(item.surface_form).split(/\s*\/\s*/)[0];
+        cleanTargetWord = cleanNounLemma(chosen);
+      }
+    } else if (isNoun) {
+      const rawParts = item.surface_form.split(/\s*\/\s*/);
+      const chosenPart = (rawParts.length > 1 && effGender === 'feminine') ? rawParts[1] : rawParts[0];
+      cleanTargetWord = cleanNounLemma(chosenPart);
+    } else {
+      cleanTargetWord = cleanLexicalText(item.surface_form).split(/\s*\/\s*/)[0].trim();
     }
 
-    const audioText = formatPronunciationText(item);
+    // ── 1. ATOMIC AUDIO (Section 1) ──────────────────────────────────────────
+    // Audio must pronounce exactly ONE atomic lexical item (e.g. 'compagnon', 'compagne').
+    // NEVER 'compagnon / compagne'.
+    const audioText = cleanTargetWord;
+    const canonicalAnswer = cleanTargetWord;
 
-    // Determine canonical answer
-    // For nouns: includes article (e.g. "une voiture" or "un livre")
-    let canonical = item.surface_form.trim();
-    // Clean any '(n, mas)' notation
-    canonical = canonical.replace(/\s*\(n,\s*(mas|fem)\)/i, '').trim();
+    // ── 2. HOMOPHONIC MASC/FEM DETECTION & GENDER TAG (Section 2) ────────────
+    // If masculine and feminine records have identical spelling and pronunciation,
+    // display the appropriate gender tag so the learner knows which gender is tested.
+    const cleanLower = cleanTargetWord.toLowerCase();
+    let isHomophonic = false;
 
-    const acceptableAnswers: string[] = [canonical];
+    if (isNoun && KNOWN_SHARED_GENDER_NOUNS.has(cleanLower)) {
+      isHomophonic = true;
+    }
 
-    // For nouns: add definite/indefinite equivalents if appropriate
-    if (isNoun) {
-      const nounGender = item.gender || (item.format_a?.grammar as any)?.gender;
-      const cleanRoot = canonical
-        .replace(/^(une\b|un\b|des\b|les\b|le\b|la\b|l'|l’)\s*/i, '')
-        .trim();
-
-      if (nounGender === Gender.Masculine) {
-        acceptableAnswers.push(`un ${cleanRoot}`, `le ${cleanRoot}`);
-      } else if (nounGender === Gender.Feminine) {
-        acceptableAnswers.push(`une ${cleanRoot}`, `la ${cleanRoot}`);
+    const grammar = item.format_a?.grammar as any;
+    if (grammar?.is_shared_form) {
+      isHomophonic = true;
+    }
+    if (grammar?.gender_choice === 'both' || grammar?.gender === Gender.Both) {
+      const masc = grammar.masculine_form?.lemma || grammar.forms?.masculine;
+      const fem = grammar.feminine_form?.lemma || grammar.forms?.feminine;
+      if (masc && fem) {
+        if (cleanNounLemma(masc).toLowerCase() === cleanNounLemma(fem).toLowerCase()) {
+          isHomophonic = true;
+        }
+      } else {
+        isHomophonic = true;
       }
+    }
 
-      if (isElisionNoun(cleanRoot)) {
-        acceptableAnswers.push(`l'${cleanRoot}`, `l’${cleanRoot}`);
+    for (const other of allVocab) {
+      if (other.id === item.id) continue;
+      const sameCard = Boolean(item.card_id && other.card_id && item.card_id === other.card_id);
+      const sameBaseId = other.id.replace(/-(masc|fem)$/, '') === item.id.replace(/-(masc|fem)$/, '');
+      const otherClean = cleanNounLemma(other.surface_form).toLowerCase();
+
+      if ((sameCard || sameBaseId) && otherClean === cleanLower) {
+        isHomophonic = true;
+        break;
+      }
+    }
+
+    if (isAdj) {
+      const forms = getAdjectiveForms(item);
+      if (forms.masculine && forms.feminine && forms.masculine.toLowerCase() === forms.feminine.toLowerCase()) {
+        isHomophonic = true;
+      }
+    }
+
+    let genderTag: string | undefined = undefined;
+    if (isHomophonic) {
+      if (isNoun) {
+        genderTag = effGender === 'feminine' ? '(n, fem)' : '(n, mas)';
+      } else if (isAdj) {
+        genderTag = effGender === 'feminine' ? '(adj, fem)' : '(adj, mas)';
+      } else {
+        genderTag = effGender === 'feminine' ? 'féminin' : 'masculin';
+      }
+    }
+
+    // ── 3. ACCEPTABLE ANSWERS (Section 3) ───────────────────────────────────
+    // User answer is CORRECT if it matches:
+    // A. The stored lexical form itself (bare word)
+    // OR
+    // B. The same lexical form preceded by its valid French gender/article marker.
+    // Masculine: word, un + word, le + word (or l' + word if elision)
+    // Feminine: word, une + word, la + word (or l' + word if elision)
+    // Do not accept the opposite gender article.
+    const acceptableAnswers = new Set<string>();
+
+    // Rule A: The stored lexical form itself
+    acceptableAnswers.add(cleanTargetWord);
+
+    // Rule B: Valid French gender/article marker
+    if (isNoun) {
+      const isHAspire = Boolean((item.format_a?.grammar as any)?.is_h_aspire);
+      const elides = isElisionNoun(cleanTargetWord, isHAspire);
+
+      if (effGender === 'masculine') {
+        acceptableAnswers.add(`un ${cleanTargetWord}`);
+        if (elides) {
+          acceptableAnswers.add(`l'${cleanTargetWord}`);
+          acceptableAnswers.add(`l’${cleanTargetWord}`);
+        } else {
+          acceptableAnswers.add(`le ${cleanTargetWord}`);
+        }
+      } else {
+        acceptableAnswers.add(`une ${cleanTargetWord}`);
+        if (elides) {
+          acceptableAnswers.add(`l'${cleanTargetWord}`);
+          acceptableAnswers.add(`l’${cleanTargetWord}`);
+        } else {
+          acceptableAnswers.add(`la ${cleanTargetWord}`);
+        }
       }
     }
 
     return {
-      id: `lw-${item.id}-${Date.now()}`,
+      id: `lw-${item.id}-${effGender || 'target'}-${Date.now()}`,
       gameType: 'listening_writing',
       targetItem: item,
       prompt: 'Listen to the pronunciation and transcribe the French vocabulary accurately:',
-      promptSubtext: isNoun
-        ? 'Note: For nouns, include the required article (e.g. un / une / le / la).'
-        : 'Note: Pay attention to spelling, accents, and apostrophes.',
+      promptSubtext: undefined,
       audioText,
-      canonicalAnswer: canonical,
-      acceptableAnswers: Array.from(new Set(acceptableAnswers)),
-      requiresArticle: isNoun,
+      canonicalAnswer,
+      acceptableAnswers: Array.from(acceptableAnswers),
+      requiresArticle: false,
       hintVietnamese: item.format_a?.meaning_en || item.format_a?.meaning_vi,
       partOfSpeech: item.part_of_speech,
+      targetGender: effGender,
+      targetForm: cleanTargetWord,
+      targetPosition,
+      adjectiveTargetId,
+      genderTag,
     };
   }
 
@@ -115,40 +215,19 @@ export class ListeningWritingEngine {
       userAnswer,
       question.canonicalAnswer,
       question.acceptableAnswers,
-      question.requiresArticle,
+      false, // requiresArticle is false because bare word is accepted!
     );
 
-    let feedbackTitle = 'Correct!';
-    let retrievalResult: 'success' | 'borderline' | 'failure' = 'success';
-
-    if (!diff.isCorrect) {
-      if (diff.errorType === 'accent') {
-        feedbackTitle = 'Accent Error';
-        // Accent mistakes count as borderline (partial recall)
-        retrievalResult = 'borderline';
-      } else if (diff.errorType === 'apostrophe') {
-        feedbackTitle = 'Elision Apostrophe Error';
-        retrievalResult = 'borderline';
-      } else if (diff.errorType === 'missing_article') {
-        feedbackTitle = 'Missing Article';
-        retrievalResult = 'borderline';
-      } else if (diff.errorType === 'wrong_article') {
-        feedbackTitle = 'Incorrect Article / Gender';
-        retrievalResult = 'failure';
-      } else {
-        feedbackTitle = 'Spelling Error';
-        retrievalResult = 'failure';
-      }
-    }
+    const isCorrect = diff.isCorrect;
 
     return {
-      isCorrect: diff.isCorrect,
+      isCorrect,
       userAnswer,
       correctAnswer: question.canonicalAnswer,
-      feedbackTitle,
-      feedbackMessage: diff.feedbackMessage,
+      feedbackTitle: isCorrect ? 'Correct' : 'Incorrect',
+      feedbackMessage: isCorrect ? 'Correct' : 'Incorrect',
       detailedAnalysis: diff,
-      retrievalResult,
+      retrievalResult: isCorrect ? 'success' : 'failure',
     };
   }
 }

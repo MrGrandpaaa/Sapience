@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { UUID } from '../core/models/types';
 import {
   VocabularyItem,
+  CardDisplayData,
   VocabularyStatistics,
   VocabLevel,
   calculateVocabularyStats,
@@ -12,22 +13,29 @@ import { masterVocabularyService } from '../core/services/masterVocabularyServic
  * Hook managing the Master Vocabulary List.
  *
  * Connected directly to MasterVocabularyService (the persistent source of truth).
- * - Vocabulary starts completely empty (0 items).
- * - Data is only added when the user enters and learns new words.
- * - All statistics are calculated directly from genuine user data.
- * - Accessible and synchronized across components, game generators, and cloze tests.
+ * - items: Atomic vocabulary memory records (used for games, SRS retrieval, algorithms).
+ * - cards: Card display representations (used for rendering the vocabulary card catalog).
  */
 export function useVocabulary() {
   const [items, setItemsState] = useState<VocabularyItem[]>(() =>
     masterVocabularyService.getAllItems(),
   );
+  const [cards, setCardsState] = useState<CardDisplayData[]>(() =>
+    masterVocabularyService.getAllCards(),
+  );
 
-  // Subscribe to MasterVocabularyService changes
+  // Subscribe to MasterVocabularyService changes (both atomic items and cards)
   useEffect(() => {
-    const unsubscribe = masterVocabularyService.subscribe((updatedItems) => {
+    const unsubscribeItems = masterVocabularyService.subscribe((updatedItems) => {
       setItemsState(updatedItems);
     });
-    return unsubscribe;
+    const unsubscribeCards = masterVocabularyService.subscribeCards((updatedCards) => {
+      setCardsState(updatedCards);
+    });
+    return () => {
+      unsubscribeItems();
+      unsubscribeCards();
+    };
   }, []);
 
   // Calculate live statistics directly from current items
@@ -35,8 +43,8 @@ export function useVocabulary() {
     return calculateVocabularyStats(items);
   }, [items]);
 
-  const addItem = (newItem: VocabularyItem) => {
-    masterVocabularyService.addItem(newItem);
+  const addItem = (newItem: VocabularyItem | CardDisplayData) => {
+    return masterVocabularyService.addItem(newItem);
   };
 
   const updateItem = (id: UUID, updates: Partial<VocabularyItem>) => {
@@ -49,6 +57,10 @@ export function useVocabulary() {
 
   const removeItem = (id: UUID) => {
     return masterVocabularyService.removeItem(id);
+  };
+
+  const removeCard = (cardId: UUID) => {
+    return masterVocabularyService.removeCard(cardId);
   };
 
   const clearAll = () => {
@@ -68,6 +80,7 @@ export function useVocabulary() {
 
   return {
     items,
+    cards,
     dueItems,
     stats,
     addItem,
@@ -75,7 +88,9 @@ export function useVocabulary() {
     updateItemLevel,
     recordRetrieval,
     removeItem,
+    removeCard,
     clearAll,
     setItems: setItemsState,
+    setCards: setCardsState,
   };
 }

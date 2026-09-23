@@ -5,23 +5,100 @@ import {
   McqOption,
   QuestionEvaluation,
 } from '../../../models/games';
+import { masterVocabularyService } from '../../masterVocabularyService';
+
+function cleanNounLemma(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/^(une\b|un\b|des\b|les\b|le\b|la\b|l'|l’)\s*/i, '')
+    .trim();
+}
+
+function getAtomicNounForm(item: VocabularyItem): string {
+  let base = item.word || item.surface_form || '';
+  if (base.includes('/')) {
+    const parts = base.split(/\s*\/\s*/);
+    const isFem =
+      item.gender === Gender.Feminine ||
+      (item.format_a?.grammar as any)?.gender === Gender.Feminine;
+    base = isFem && parts[1] ? parts[1] : parts[0];
+  }
+  return cleanNounLemma(base);
+}
+
+function isDualGenderNoun(
+  item: VocabularyItem,
+  targetWord: string,
+  vocabList: VocabularyItem[] = []
+): boolean {
+  if (item.gender === Gender.Both) return true;
+  const grammar = item.format_a?.grammar as any;
+  if (grammar?.gender_choice === 'both' || grammar?.is_shared_form) {
+    if (grammar?.masculine_form?.lemma && grammar?.feminine_form?.lemma) {
+      if (
+        cleanNounLemma(grammar.masculine_form.lemma).toLowerCase() ===
+        cleanNounLemma(grammar.feminine_form.lemma).toLowerCase()
+      ) {
+        return true;
+      }
+    } else {
+      return true;
+    }
+  }
+
+  const normalizedTarget = targetWord.trim().toLowerCase();
+  if (!normalizedTarget) return false;
+
+  const pool =
+    vocabList && vocabList.length > 0
+      ? vocabList
+      : masterVocabularyService.getAllItems();
+
+  let hasMasc = false;
+  let hasFem = false;
+
+  for (const v of pool) {
+    if (v.part_of_speech && v.part_of_speech !== PartOfSpeech.Noun) continue;
+    const vWord = getAtomicNounForm(v).toLowerCase();
+    if (vWord === normalizedTarget) {
+      const vGender = v.gender || (v.format_a?.grammar as any)?.gender;
+      if (vGender === Gender.Masculine) hasMasc = true;
+      if (vGender === Gender.Feminine) hasFem = true;
+      if (vGender === Gender.Both) {
+        hasMasc = true;
+        hasFem = true;
+      }
+    }
+  }
+
+  return hasMasc && hasFem;
+}
 
 /**
  * GAME 4 ENGINE: GENDER & ARTICLES
  *
- * Rules:
+ * Rules (Prompt 5):
  * - Only applies to Nouns (pos === Noun).
- * - Tests:
- *   1. Masculine vs Feminine
- *   2. Indefinite article (un vs une)
- *   3. Definite article (le vs la vs l')
- *   4. Elision resolution: identifying underlying gender for elided nouns (l'eau, l'arbre).
+ * - Target displays strictly ONE atomic stored lexical word.
+ * - Exactly three answer choices:
+ *   1. mas (un - le + word)
+ *   2. fem (une - la + word)
+ *   3. mas - fem (le + word, la + word)
+ * - Words with identical spelling/pronunciation existing as both mas and fem
+ *   are classified as mas - fem (Option 3).
+ * - Clean evaluation without explanatory sentences.
  */
 export class GenderEngine {
-  public generateQuestion(item: VocabularyItem): GenderQuestion {
+  public generateQuestion(
+    item: VocabularyItem,
+    allVocab: VocabularyItem[] = []
+  ): GenderQuestion {
     if (item.part_of_speech !== PartOfSpeech.Noun) {
       throw new Error(`Game 4 (Gender) chỉ áp dụng cho danh từ. Mục từ "${item.surface_form}" không phải danh từ.`);
     }
+
+    const nounFormWithoutArticle = getAtomicNounForm(item);
 
     const nounGender =
       item.gender ||
@@ -30,131 +107,62 @@ export class GenderEngine {
 
     const isMasc = nounGender === Gender.Masculine;
 
-    // Strip existing articles and notations to get the raw noun
-    const rawNoun = item.surface_form
-      .replace(/\s*\(n,\s*(mas|fem)\)/i, '')
-      .replace(/^(une\b|un\b|des\b|les\b|le\b|la\b|l'|l’)\s*/i, '')
-      .trim();
-
     // Check elision: starts with vowel or silent h
-    const startsWithVowelOrH = /^[aeiouyéèêëàâîïôùûh]/i.test(rawNoun);
+    const startsWithVowelOrH = /^[aeiouyéèêëàâîïôùûh]/i.test(nounFormWithoutArticle);
 
-    // Question modes:
-    // If word has elision -> test elision resolution ("Mạo từ xác định là l', vậy mạo từ không xác định & giống là gì?")
-    // Otherwise -> alternate between gender choice and article choice
-    let questionMode: 'gender_only' | 'article_only' | 'elision_resolution' = 'gender_only';
+    // Dynamically check whether this word exists in vocabulary memory as both masculine and feminine
+    // with identical written form (spelling and pronunciation)
+    const isDual = isDualGenderNoun(item, nounFormWithoutArticle, allVocab);
 
-    if (startsWithVowelOrH) {
-      questionMode = 'elision_resolution';
-    } else {
-      questionMode = Math.random() > 0.5 ? 'gender_only' : 'article_only';
-    }
+    const canonicalGender: 'masculine' | 'feminine' | 'both' = isDual
+      ? 'both'
+      : isMasc
+      ? 'masculine'
+      : 'feminine';
 
-    const canonicalGender = isMasc ? 'masculine' : 'feminine';
     const canonicalArticleIndefinite = isMasc ? 'un' : 'une';
     const canonicalArticleDefinite = startsWithVowelOrH ? "l'" : isMasc ? 'le' : 'la';
 
-    let prompt = '';
-    let promptSubtext: string | undefined = undefined;
-    let options: McqOption[] = [];
+    const prompt = `Is the noun « ${nounFormWithoutArticle} » masculine, feminine, or both?`;
 
-    if (questionMode === 'elision_resolution') {
-      prompt = `Identify the grammatical gender and indefinite article for « ${rawNoun} »:`;
-      promptSubtext = `Note: Beginning with a vowel/silent h, this noun takes the definite article « l'${rawNoun} ».`;
-
-      options = [
-        {
-          id: 'opt-correct',
-          text: isMasc ? `un ${rawNoun} (Masculine)` : `une ${rawNoun} (Feminine)`,
-          isCorrect: true,
-          explanation: `Correct! « ${rawNoun} » is ${isMasc ? 'masculine' : 'feminine'}, taking « ${canonicalArticleIndefinite} » and elided definite article « l'${rawNoun} ».`,
-        },
-        {
-          id: 'opt-wrong-1',
-          text: isMasc ? `une ${rawNoun} (Feminine)` : `un ${rawNoun} (Masculine)`,
-          isCorrect: false,
-          explanation: `Incorrect gender: « ${rawNoun} » is not ${isMasc ? 'feminine' : 'masculine'}.`,
-        },
-        {
-          id: 'opt-wrong-2',
-          text: isMasc ? `le ${rawNoun} (Unelided masculine)` : `la ${rawNoun} (Unelided feminine)`,
-          isCorrect: false,
-          explanation: `Incorrect elision: Before a vowel or silent h, elision to « l'${rawNoun} » is mandatory.`,
-        },
-      ];
-    } else if (questionMode === 'article_only') {
-      prompt = `Select the accurate article pair (indefinite & definite) for « ${rawNoun} »:`;
-      promptSubtext = undefined;
-
-      const correctPair = `${canonicalArticleIndefinite} ${rawNoun}  /  ${canonicalArticleDefinite} ${rawNoun}`;
-      const wrongPair = isMasc
-        ? `une ${rawNoun}  /  la ${rawNoun}`
-        : `un ${rawNoun}  /  le ${rawNoun}`;
-
-      options = [
-        {
-          id: 'opt-correct',
-          text: correctPair,
-          isCorrect: true,
-          explanation: `Correct! « ${rawNoun} » is ${isMasc ? 'masculine' : 'feminine'}.`,
-        },
-        {
-          id: 'opt-wrong-1',
-          text: wrongPair,
-          isCorrect: false,
-          explanation: `Incorrect gender: « ${rawNoun} » is ${isMasc ? 'masculine' : 'feminine'}, not « ${wrongPair} ».`,
-        },
-        {
-          id: 'opt-wrong-2',
-          text: `${isMasc ? 'un' : 'une'} ${rawNoun}  /  ${isMasc ? 'la' : 'le'} ${rawNoun}`,
-          isCorrect: false,
-          explanation: 'Indefinite and definite articles have conflicting genders!',
-        },
-        {
-          id: 'opt-wrong-3',
-          text: `des ${rawNoun}s  /  les ${rawNoun}s`,
-          isCorrect: false,
-          explanation: 'This is plural form, not singular.',
-        },
-      ];
-    } else {
-      // gender_only
-      prompt = `Is the noun « ${rawNoun} » masculine or feminine?`;
-      promptSubtext = undefined;
-
-      options = [
-        {
-          id: 'opt-masc',
-          text: `Masculine (Masculin) — un / le ${rawNoun}`,
-          isCorrect: isMasc,
-          explanation: isMasc
-            ? `Correct! « ${rawNoun} » is a masculine noun (un ${rawNoun} / le ${rawNoun}).`
-            : `Incorrect: « ${rawNoun} » is a feminine noun (une ${rawNoun} / la ${rawNoun}).`,
-        },
-        {
-          id: 'opt-fem',
-          text: `Feminine (Féminin) — une / la ${rawNoun}`,
-          isCorrect: !isMasc,
-          explanation: !isMasc
-            ? `Correct! « ${rawNoun} » is a feminine noun (une ${rawNoun} / la ${rawNoun}).`
-            : `Incorrect: « ${rawNoun} » is a masculine noun (un ${rawNoun} / le ${rawNoun}).`,
-        },
-      ];
-    }
+    // Part C: Exactly three choices:
+    // 1. mas (un - le + word)
+    // 2. fem (une - la + word)
+    // 3. mas - fem (le + word, la + word)
+    const options: McqOption[] = [
+      {
+        id: 'mas',
+        text: 'mas',
+        subtext: `un - le ${nounFormWithoutArticle}`,
+        isCorrect: !isDual && isMasc,
+      },
+      {
+        id: 'fem',
+        text: 'fem',
+        subtext: `une - la ${nounFormWithoutArticle}`,
+        isCorrect: !isDual && !isMasc,
+      },
+      {
+        id: 'mas - fem',
+        text: 'mas - fem',
+        subtext: `le ${nounFormWithoutArticle}, la ${nounFormWithoutArticle}`,
+        isCorrect: isDual,
+      },
+    ];
 
     return {
       id: `gen-${item.id}-${Date.now()}`,
       gameType: 'gender',
       targetItem: item,
       prompt,
-      promptSubtext,
-      nounFormWithoutArticle: rawNoun,
+      promptSubtext: undefined,
+      nounFormWithoutArticle,
       canonicalGender,
       canonicalArticleIndefinite,
       canonicalArticleDefinite,
       hasElision: startsWithVowelOrH,
       options,
-      questionMode,
+      questionMode: 'gender_only',
     };
   }
 
@@ -162,19 +170,21 @@ export class GenderEngine {
     question: GenderQuestion,
     selectedOptionId: string,
   ): QuestionEvaluation {
-    const selected = question.options.find((opt) => opt.id === selectedOptionId);
+    const selected = question.options.find(
+      (opt) => opt.id === selectedOptionId || opt.text === selectedOptionId
+    );
     const correctOpt = question.options.find((opt) => opt.isCorrect);
 
     const isCorrect = Boolean(selected?.isCorrect);
 
     return {
       isCorrect,
-      userAnswer: selected?.text || '',
+      userAnswer: selected?.text || selectedOptionId,
       correctAnswer: correctOpt?.text || '',
-      feedbackTitle: isCorrect ? 'Correct Gender & Article!' : 'Incorrect Gender!',
+      feedbackTitle: isCorrect ? 'Correct' : 'Incorrect',
       feedbackMessage: isCorrect
-        ? (correctOpt?.explanation || 'Excellent! You remembered the gender of this noun accurately.')
-        : `${selected?.explanation || 'Incorrect choice.'} Correct answer: « ${correctOpt?.text} ».`,
+        ? 'Correct'
+        : `Correct answer: ${correctOpt?.text || ''}`,
       retrievalResult: isCorrect ? 'success' : 'failure',
     };
   }

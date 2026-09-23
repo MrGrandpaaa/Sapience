@@ -234,6 +234,17 @@
   line-height: 1.45;
 }
 
+.noun-gender-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
 .game-audio-prompt-row {
   display: flex;
   align-items: center;

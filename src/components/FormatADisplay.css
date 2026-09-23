@@ -444,10 +444,13 @@
 }
 
 .word-tag {
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 0.8rem;
   font-weight: 600;
+  position: relative;
 }
 
 .word-tag--syn {
@@ -460,6 +463,116 @@
   background: #fef2f2;
   color: #b91c1c;
   border: 1px solid #fecaca;
+}
+
+.word-tag-text {
+  display: inline-block;
+}
+
+.word-tag-text.is-editable {
+  cursor: pointer;
+}
+
+.word-tag-inline-input {
+  font: inherit;
+  color: inherit;
+  background: #ffffff;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  padding: 0 4px;
+  outline: none;
+  min-width: 60px;
+  max-width: 140px;
+}
+
+.word-tag-gender-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+}
+
+.word-tag-gender-btn {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: inherit;
+  padding: 0 4px;
+  line-height: 1.3;
+  cursor: pointer;
+  text-transform: lowercase;
+  transition: all 0.15s ease;
+}
+
+.word-tag-gender-btn:hover {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.word-tag-gender-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  min-width: 52px;
+}
+
+.gender-dropdown-btn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.gender-dropdown-btn:hover {
+  background: #f1f5f9;
+}
+
+.gender-dropdown-btn.is-active {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.meaning-text-editable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  transition: background-color 0.15s ease;
+}
+
+.meaning-text-editable:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.meaning-inline-input {
+  font: inherit;
+  color: inherit;
+  background: #ffffff;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  width: 100%;
+  max-width: 450px;
 }
 
 /* ── 10. 1 Example Trong Tình Huống Giao Tiếp Đời Thường ── */

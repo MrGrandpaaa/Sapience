@@ -9,6 +9,7 @@ import './VocabularyPage.css';
 export function VocabularyPage() {
   const {
     items,
+    cards,
     stats,
     addItem,
     removeItem,
@@ -40,7 +41,8 @@ export function VocabularyPage() {
 
       {/* ── 3. Saved Vocabulary List (Square Reference Library, 4 per row) ── */}
       <SavedVocabList
-        items={items}
+        cards={cards}
+        items={cards}
         onDelete={removeItem}
         selectedLevel={selectedLevel}
         onResetLevel={() => setSelectedLevel('total')}

@@ -1,6 +1,6 @@
 import { Gender, PartOfSpeech } from '../models/types';
 import { FormatAGrammar, FormatANounGrammar, NounGenderFormDetails } from '../models/lexical';
-import { VocabularyItem } from '../models/vocabulary';
+import { VocabularyItem, CardDisplayData } from '../models/vocabulary';
 
 /**
  * Curated list of French nouns that can exist in both masculine and feminine
@@ -567,9 +567,20 @@ export function formatSingleNounPresentation(
  *   - Dual different forms (e.g., "l'acteur / l'actrice", "le chanteur / la chanteuse")
  */
 export function formatNounPresentation(
-  item: VocabularyItem | { grammar?: FormatAGrammar; surface_form?: string; gender?: Gender; part_of_speech?: PartOfSpeech },
+  item: VocabularyItem | CardDisplayData | { grammar?: FormatAGrammar; surface_form?: string; gender?: Gender; part_of_speech?: PartOfSpeech; display_title?: string },
 ): string {
   const grammar = ('format_a' in item ? item.format_a?.grammar : (item as any).grammar) as FormatANounGrammar | undefined;
+
+  // Single atomic noun with specific gender (Masculine or Feminine)
+  const isSpecificGender = item.gender === Gender.Masculine || item.gender === Gender.Feminine;
+  const rawText = item.surface_form || (item as any).word || '';
+  if (isSpecificGender && !rawText.includes(' / ')) {
+    const clean = cleanNounLemma(grammar?.lemma || rawText);
+    if (!clean) return '';
+    const g = item.gender as (Gender.Masculine | Gender.Feminine);
+    const art = grammar?.underlying_article || (g === Gender.Feminine ? 'la' : 'le');
+    return formatSingleNounPresentation(clean, g, art, grammar?.is_h_aspire);
+  }
 
   // Case 1: Dual forms (Masculin + Féminin)
   if (grammar && (grammar.gender_choice === 'both' || grammar.gender === Gender.Both || grammar.masculine_form || grammar.feminine_form)) {
@@ -603,7 +614,6 @@ export function formatNounPresentation(
   }
 
   // Case 3: Surface form with gender metadata
-  const rawText = item.surface_form || '';
   const clean = cleanNounLemma(rawText);
   if (!clean) return '';
 
@@ -619,9 +629,14 @@ export function formatNounPresentation(
  * For nouns, returns the article + noun presentation.
  * For other parts of speech, returns the clean surface form.
  */
-export function getCardPresentationTitle(item: VocabularyItem): string {
+export function getCardPresentationTitle(
+  item: VocabularyItem | CardDisplayData | { grammar?: FormatAGrammar; surface_form?: string; gender?: Gender; part_of_speech?: PartOfSpeech; display_title?: string },
+): string {
+  if ('display_title' in item && item.display_title) {
+    return item.display_title;
+  }
   if (item.part_of_speech === PartOfSpeech.Noun) {
     return formatNounPresentation(item);
   }
-  return item.surface_form;
+  return item.surface_form || '';
 }

@@ -41,7 +41,9 @@ export function GameCardGender({
       {/* ── Options Stack ── */}
       <div className="game-options-stack">
         {question.options.map((opt, idx) => {
-          const isSelected = evaluation?.userAnswer === opt.text;
+          const isSelected =
+            evaluation?.userAnswer === opt.text ||
+            evaluation?.userAnswer === opt.id;
           const isCorrectAnswer = opt.isCorrect;
 
           let btnClass = '';
@@ -66,10 +68,8 @@ export function GameCardGender({
               <div className="opt-key-badge">{idx + 1}</div>
               <div className="opt-gender-body">
                 <span className="opt-gender-label">{opt.text}</span>
-                {evaluation && opt.explanation && (
-                  <span className="opt-explanation-inline">
-                    {opt.explanation}
-                  </span>
+                {opt.subtext && (
+                  <span className="opt-sub-text">{opt.subtext}</span>
                 )}
               </div>
             </button>
@@ -90,7 +90,12 @@ export function GameCardGender({
             </span>
             <strong className="eval-title">{evaluation.feedbackTitle}</strong>
           </div>
-          <p className="eval-message">{evaluation.feedbackMessage}</p>
+          {!evaluation.isCorrect && (
+            <div className="eval-correct-target">
+              <span className="target-label">Correct answer:</span>
+              <span className="target-text">{evaluation.correctAnswer}</span>
+            </div>
+          )}
           <GameAnswerMeanings item={question.targetItem} />
         </div>
       )}

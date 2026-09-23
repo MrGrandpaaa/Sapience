@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react';
 import {
   FormatAData,
   FormatANounGrammar,
   FormatAAdjectiveGrammar,
   NOUN_GENDER_NOTATION,
   ADJECTIVE_POSITION_DISPLAY,
+  RelatedWordGender,
+  LexicalRelatedWord,
 } from '../core/models/lexical';
 import { PartOfSpeech, Gender, AdjectivePosition } from '../core/models/types';
 import {
@@ -16,10 +19,232 @@ import {
 import { formatAdjectiveGenderNotation } from '../core/services/adjectivePresentationService';
 import { AudioSpeakerButton } from './AudioSpeakerButton';
 import { formatPronunciationText } from '../core/services/audioPronunciationFormatter';
+import { normalizeRelatedWord } from '../core/services/masterVocabularyService';
 import './FormatADisplay.css';
 
-interface FormatADisplayProps {
+interface InlineMeaningEditorProps {
+  text: string;
+  className?: string;
+  editable?: boolean;
+  onSave?: (newValue: string) => void;
+}
+
+function InlineMeaningEditor({
+  text,
+  className = '',
+  editable = false,
+  onSave,
+}: InlineMeaningEditorProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(text);
+
+  useEffect(() => {
+    setDraft(text);
+  }, [text]);
+
+  const handleCommit = () => {
+    setIsEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== text) {
+      onSave?.(trimmed);
+    } else {
+      setDraft(text);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setDraft(text);
+  };
+
+  if (!editable) {
+    return <span className={className}>{text}</span>;
+  }
+
+  if (isEditing) {
+    return (
+      <input
+        type="text"
+        className={`meaning-inline-input ${className}`}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleCommit();
+          if (e.key === 'Escape') handleCancel();
+        }}
+        onBlur={handleCommit}
+        autoFocus
+        onClick={(e) => e.stopPropagation()}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`meaning-text-editable ${className}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsEditing(true);
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+interface RelatedWordTagProps {
+  item: string | LexicalRelatedWord;
+  type: 'syn' | 'ant';
+  fallbackGender?: RelatedWordGender;
+  editable?: boolean;
+  onSaveText?: (newText: string) => void;
+  onSaveGender?: (newGender: RelatedWordGender) => void;
+}
+
+function RelatedWordTag({
+  item,
+  type,
+  fallbackGender = 'mas',
+  editable = false,
+  onSaveText,
+  onSaveGender,
+}: RelatedWordTagProps) {
+  const normalized = normalizeRelatedWord(item, fallbackGender);
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [textDraft, setTextDraft] = useState(normalized.word);
+  const [showGenderPicker, setShowGenderPicker] = useState(false);
+
+  useEffect(() => {
+    setTextDraft(normalized.word);
+  }, [normalized.word]);
+
+  useEffect(() => {
+    if (!showGenderPicker) return;
+    const handleClickOutside = () => setShowGenderPicker(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowGenderPicker(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showGenderPicker]);
+
+  const handleCommitText = () => {
+    setIsEditingText(false);
+    const trimmed = textDraft.trim();
+    if (trimmed && trimmed !== normalized.word) {
+      onSaveText?.(trimmed);
+    } else {
+      setTextDraft(normalized.word);
+    }
+  };
+
+  const handleCancelText = () => {
+    setIsEditingText(false);
+    setTextDraft(normalized.word);
+  };
+
+  return (
+    <span className={`word-tag word-tag--${type}`}>
+      {isEditingText && editable ? (
+        <input
+          type="text"
+          className="word-tag-inline-input"
+          value={textDraft}
+          onChange={(e) => setTextDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleCommitText();
+            if (e.key === 'Escape') handleCancelText();
+          }}
+          onBlur={handleCommitText}
+          autoFocus
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span
+          className={`word-tag-text ${editable ? 'is-editable' : ''}`}
+          onClick={(e) => {
+            if (!editable) return;
+            e.stopPropagation();
+            setIsEditingText(true);
+          }}
+        >
+          {normalized.word}
+        </span>
+      )}
+
+      <span className="word-tag-gender-wrapper" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className={`word-tag-gender-btn word-tag-gender--${normalized.gender}`}
+          onClick={(e) => {
+            if (!editable) return;
+            e.stopPropagation();
+            setShowGenderPicker((prev) => !prev);
+          }}
+          title={normalized.gender}
+          aria-label={`Gender: ${normalized.gender}`}
+        >
+          {normalized.gender}
+        </button>
+
+        {showGenderPicker && editable && (
+          <div className="word-tag-gender-dropdown">
+            <button
+              type="button"
+              className={`gender-dropdown-btn ${normalized.gender === 'mas' ? 'is-active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowGenderPicker(false);
+                if (normalized.gender !== 'mas') {
+                  onSaveGender?.('mas');
+                }
+              }}
+            >
+              mas
+            </button>
+            <button
+              type="button"
+              className={`gender-dropdown-btn ${normalized.gender === 'fem' ? 'is-active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowGenderPicker(false);
+                if (normalized.gender !== 'fem') {
+                  onSaveGender?.('fem');
+                }
+              }}
+            >
+              fem
+            </button>
+          </div>
+        )}
+      </span>
+    </span>
+  );
+}
+
+export interface FormatADisplayProps {
   data: FormatAData;
+  editable?: boolean;
+  onUpdateMeaning?: (
+    field: 'en' | 'vi' | 'trc_en' | 'trc_vi' | 'sau_en' | 'sau_vi',
+    value: string,
+  ) => void;
+  onUpdateSynonym?: (
+    index: number,
+    text?: string,
+    gender?: RelatedWordGender,
+    context?: 'before' | 'after',
+  ) => void;
+  onUpdateAntonym?: (
+    index: number,
+    text?: string,
+    gender?: RelatedWordGender,
+    context?: 'before' | 'after',
+  ) => void;
 }
 
 interface AdjectiveColumnProps {
@@ -31,9 +256,14 @@ interface AdjectiveColumnProps {
   meaningEn?: string;
   meaningVi?: string;
   collocations?: string[];
-  synonyms?: string[];
-  antonyms?: string[];
+  synonyms?: (string | LexicalRelatedWord)[];
+  antonyms?: (string | LexicalRelatedWord)[];
   examples?: Array<{ french: string; vietnamese?: string; english?: string }>;
+  editable?: boolean;
+  onUpdateMeaningEn?: (val: string) => void;
+  onUpdateMeaningVi?: (val: string) => void;
+  onUpdateSynonym?: (index: number, text?: string, gender?: RelatedWordGender) => void;
+  onUpdateAntonym?: (index: number, text?: string, gender?: RelatedWordGender) => void;
 }
 
 function AdjectiveColumn({
@@ -48,6 +278,11 @@ function AdjectiveColumn({
   synonyms,
   antonyms,
   examples,
+  editable,
+  onUpdateMeaningEn,
+  onUpdateMeaningVi,
+  onUpdateSynonym,
+  onUpdateAntonym,
 }: AdjectiveColumnProps) {
   const notations = formatAdjectiveGenderNotation(masculine, feminine);
   const hasExamples = Boolean(examples && examples.length > 0);
@@ -116,13 +351,23 @@ function AdjectiveColumn({
           {meaningEn && (
             <div className="format-a-meaning-en">
               <span className="meaning-label">English meaning:</span>
-              <span className="meaning-text en">{meaningEn}</span>
+              <InlineMeaningEditor
+                text={meaningEn}
+                className="meaning-text en"
+                editable={editable}
+                onSave={onUpdateMeaningEn}
+              />
             </div>
           )}
           {meaningVi && (
             <div className="format-a-meaning-vi">
               <span className="meaning-label">Vietnamese meaning:</span>
-              <span className="meaning-text vi">{meaningVi}</span>
+              <InlineMeaningEditor
+                text={meaningVi}
+                className="meaning-text vi"
+                editable={editable}
+                onSave={onUpdateMeaningVi}
+              />
             </div>
           )}
         </div>
@@ -162,9 +407,14 @@ function AdjectiveColumn({
               <span className="syn-label">Synonyms:</span>
               <div className="word-tags-list">
                 {synonyms.map((s, idx) => (
-                  <span key={idx} className="word-tag word-tag--syn">
-                    {s}
-                  </span>
+                  <RelatedWordTag
+                    key={idx}
+                    item={s}
+                    type="syn"
+                    editable={editable}
+                    onSaveText={(text) => onUpdateSynonym?.(idx, text, undefined)}
+                    onSaveGender={(gender) => onUpdateSynonym?.(idx, undefined, gender)}
+                  />
                 ))}
               </div>
             </div>
@@ -174,9 +424,14 @@ function AdjectiveColumn({
               <span className="ant-label">Antonyms:</span>
               <div className="word-tags-list">
                 {antonyms.map((a, idx) => (
-                  <span key={idx} className="word-tag word-tag--ant">
-                    {a}
-                  </span>
+                  <RelatedWordTag
+                    key={idx}
+                    item={a}
+                    type="ant"
+                    editable={editable}
+                    onSaveText={(text) => onUpdateAntonym?.(idx, text, undefined)}
+                    onSaveGender={(gender) => onUpdateAntonym?.(idx, undefined, gender)}
+                  />
                 ))}
               </div>
             </div>
@@ -222,7 +477,13 @@ function AdjectiveColumn({
   );
 }
 
-export function FormatADisplay({ data }: FormatADisplayProps) {
+export function FormatADisplay({
+  data,
+  editable,
+  onUpdateMeaning,
+  onUpdateSynonym,
+  onUpdateAntonym,
+}: FormatADisplayProps) {
   const { grammar } = data;
   const isVerb = grammar.pos === PartOfSpeech.Verb;
   const isNoun = grammar.pos === PartOfSpeech.Noun;
@@ -445,11 +706,21 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
           <div className="format-a-section format-a-meanings">
             <div className="format-a-meaning-en">
               <span className="meaning-label">2. English meaning:</span>
-              <span className="meaning-text en">{data.meaning_en}</span>
+              <InlineMeaningEditor
+                text={data.meaning_en}
+                className="meaning-text en"
+                editable={editable}
+                onSave={(val) => onUpdateMeaning?.('en', val)}
+              />
             </div>
             <div className="format-a-meaning-vi">
               <span className="meaning-label">3. Vietnamese meaning:</span>
-              <span className="meaning-text vi">{data.meaning_vi}</span>
+              <InlineMeaningEditor
+                text={data.meaning_vi}
+                className="meaning-text vi"
+                editable={editable}
+                onSave={(val) => onUpdateMeaning?.('vi', val)}
+              />
             </div>
           </div>
 
@@ -490,9 +761,15 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                 <span className="syn-label">5. Synonyms:</span>
                 <div className="word-tags-list">
                   {data.synonyms.map((s, idx) => (
-                    <span key={idx} className="word-tag word-tag--syn">
-                      {s}
-                    </span>
+                    <RelatedWordTag
+                      key={idx}
+                      item={s}
+                      type="syn"
+                      fallbackGender={nounGrammar?.gender === Gender.Feminine ? 'fem' : 'mas'}
+                      editable={editable}
+                      onSaveText={(text) => onUpdateSynonym?.(idx, text, undefined)}
+                      onSaveGender={(gender) => onUpdateSynonym?.(idx, undefined, gender)}
+                    />
                   ))}
                 </div>
               </div>
@@ -502,9 +779,15 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                 <span className="ant-label">6. Antonyms:</span>
                 <div className="word-tags-list">
                   {data.antonyms.map((a, idx) => (
-                    <span key={idx} className="word-tag word-tag--ant">
-                      {a}
-                    </span>
+                    <RelatedWordTag
+                      key={idx}
+                      item={a}
+                      type="ant"
+                      fallbackGender={nounGrammar?.gender === Gender.Feminine ? 'fem' : 'mas'}
+                      editable={editable}
+                      onSaveText={(text) => onUpdateAntonym?.(idx, text, undefined)}
+                      onSaveGender={(gender) => onUpdateAntonym?.(idx, undefined, gender)}
+                    />
                   ))}
                 </div>
               </div>
@@ -577,6 +860,11 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                       ? [data.example]
                       : undefined)
                   }
+                  editable={editable}
+                  onUpdateMeaningEn={(val) => onUpdateMeaning?.(isDualAdj ? 'trc_en' : 'en', val)}
+                  onUpdateMeaningVi={(val) => onUpdateMeaning?.(isDualAdj ? 'trc_vi' : 'vi', val)}
+                  onUpdateSynonym={(idx, t, g) => onUpdateSynonym?.(idx, t, g, isDualAdj ? 'before' : undefined)}
+                  onUpdateAntonym={(idx, t, g) => onUpdateAntonym?.(idx, t, g, isDualAdj ? 'before' : undefined)}
                 />
               </div>
 
@@ -621,6 +909,11 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                       ? [data.example]
                       : undefined)
                   }
+                  editable={editable}
+                  onUpdateMeaningEn={(val) => onUpdateMeaning?.('sau_en', val)}
+                  onUpdateMeaningVi={(val) => onUpdateMeaning?.('sau_vi', val)}
+                  onUpdateSynonym={(idx, t, g) => onUpdateSynonym?.(idx, t, g, 'after')}
+                  onUpdateAntonym={(idx, t, g) => onUpdateAntonym?.(idx, t, g, 'after')}
                 />
               </div>
             </div>
@@ -656,6 +949,11 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                     ? [data.example]
                     : undefined
                 }
+                editable={editable}
+                onUpdateMeaningEn={(val) => onUpdateMeaning?.('en', val)}
+                onUpdateMeaningVi={(val) => onUpdateMeaning?.('vi', val)}
+                onUpdateSynonym={(idx, t, g) => onUpdateSynonym?.(idx, t, g)}
+                onUpdateAntonym={(idx, t, g) => onUpdateAntonym?.(idx, t, g)}
               />
             </div>
           )}
@@ -671,12 +969,22 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
           <div className="format-a-section format-a-meanings">
             <div className="format-a-meaning-vi">
               <span className="meaning-label">Vietnamese meaning:</span>
-              <span className="meaning-text">{data.meaning_vi}</span>
+              <InlineMeaningEditor
+                text={data.meaning_vi}
+                className="meaning-text vi"
+                editable={editable}
+                onSave={(val) => onUpdateMeaning?.('vi', val)}
+              />
             </div>
             {data.meaning_en && (
               <div className="format-a-meaning-en">
                 <span className="meaning-label">English meaning:</span>
-                <span className="meaning-text">{data.meaning_en}</span>
+                <InlineMeaningEditor
+                  text={data.meaning_en}
+                  className="meaning-text en"
+                  editable={editable}
+                  onSave={(val) => onUpdateMeaning?.('en', val)}
+                />
               </div>
             )}
           </div>
@@ -799,9 +1107,14 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                   </span>
                   <div className="word-tags-list">
                     {data.synonyms.map((s, idx) => (
-                      <span key={idx} className="word-tag word-tag--syn">
-                        {s}
-                      </span>
+                      <RelatedWordTag
+                        key={idx}
+                        item={s}
+                        type="syn"
+                        editable={editable}
+                        onSaveText={(text) => onUpdateSynonym?.(idx, text, undefined)}
+                        onSaveGender={(gender) => onUpdateSynonym?.(idx, undefined, gender)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -813,9 +1126,14 @@ export function FormatADisplay({ data }: FormatADisplayProps) {
                   </span>
                   <div className="word-tags-list">
                     {data.antonyms.map((a, idx) => (
-                      <span key={idx} className="word-tag word-tag--ant">
-                        {a}
-                      </span>
+                      <RelatedWordTag
+                        key={idx}
+                        item={a}
+                        type="ant"
+                        editable={editable}
+                        onSaveText={(text) => onUpdateAntonym?.(idx, text, undefined)}
+                        onSaveGender={(gender) => onUpdateAntonym?.(idx, undefined, gender)}
+                      />
                     ))}
                   </div>
                 </div>

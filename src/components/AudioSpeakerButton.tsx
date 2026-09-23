@@ -1,12 +1,12 @@
 import { MouseEvent } from 'react';
 import { useAudio } from '../hooks/useAudio';
-import { VocabularyItem } from '../core/models/vocabulary';
+import { VocabularyItem, CardDisplayData } from '../core/models/vocabulary';
 import { formatPronunciationText, cleanLexicalText } from '../core/services/audioPronunciationFormatter';
 import './AudioSpeakerButton.css';
 
 interface AudioSpeakerButtonProps {
-  /** Optional VocabularyItem to pronounce with grammatical rules */
-  item?: VocabularyItem;
+  /** Optional VocabularyItem or CardDisplayData to pronounce with grammatical rules */
+  item?: VocabularyItem | CardDisplayData;
   /** Optional raw text or example sentence to pronounce */
   text?: string;
   /** Whether this is an example sentence (played at slower rate: 0.72) */

@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { VocabularyItem } from '../core/models/vocabulary';
+import { VocabularyItem, CardDisplayData } from '../core/models/vocabulary';
 import { PartOfSpeech, Gender, AdjectivePosition } from '../core/models/types';
 import { NOUN_GENDER_NOTATION, ADJECTIVE_POSITION_DISPLAY, FormatAAdjectiveGrammar } from '../core/models/lexical';
 import { getCardPresentationTitle, getNounForms, isNounSharedForm, cleanNounLemma, stripAccents } from '../core/services/nounPresentationService';
 import { getAdjectiveForms, AdjectiveFormsResult } from '../core/services/adjectivePresentationService';
 import { AudioSpeakerButton } from './AudioSpeakerButton';
 import { FormatADisplay } from './FormatADisplay';
+import { masterVocabularyService } from '../core/services/masterVocabularyService';
 import './SavedVocabList.css';
 
 /**
@@ -67,7 +68,7 @@ function cleanMeaning(text?: string): string {
  * - Single gender noun (e.g. "livre" or "voiture"):
  *   1 word + 1 speaker button + "(n, mas)" or "(n, fem)"
  */
-function renderNounFrontTitle(item: VocabularyItem) {
+function renderNounFrontTitle(item: VocabularyItem | CardDisplayData) {
   const forms = getNounForms(item);
 
   // Case 1: Dual forms with different spelling (e.g. acteur (n, mas) → actrice (n, fem))
@@ -123,7 +124,7 @@ function renderNounFrontTitle(item: VocabularyItem) {
  * - Trước và sau nom: 2 rows without indicator.
  * - Each word has its own speaker button!
  */
-function renderAdjectiveFrontTitle(item: VocabularyItem, forms: AdjectiveFormsResult) {
+function renderAdjectiveFrontTitle(item: VocabularyItem | CardDisplayData, forms: AdjectiveFormsResult) {
   const grammar = item.format_a?.grammar as FormatAAdjectiveGrammar | undefined;
   const position = forms.position || grammar?.position || AdjectivePosition.BeforeNoun;
 
@@ -154,11 +155,10 @@ function renderAdjectiveFrontTitle(item: VocabularyItem, forms: AdjectiveFormsRe
     );
   };
 
-  // Position: Sau nom -> 'N + adj'
+  // Position: Sau nom
   if (position === AdjectivePosition.AfterNoun) {
     return (
       <div className="adj-front-title-container adj-front-title--after">
-        <span className="adj-pos-indicator">N + adj</span>
         {renderFormsBlock()}
       </div>
     );
@@ -183,7 +183,8 @@ function renderAdjectiveFrontTitle(item: VocabularyItem, forms: AdjectiveFormsRe
 }
 
 interface SavedVocabListProps {
-  items: VocabularyItem[];
+  items: (VocabularyItem | CardDisplayData)[];
+  cards?: CardDisplayData[];
   onDelete: (id: string) => void;
   selectedLevel?: 'total' | number | null;
   onResetLevel?: () => void;
@@ -193,15 +194,17 @@ type PosFilter = 'all' | 'noun' | 'verb' | 'adjective' | 'other';
 
 export function SavedVocabList({
   items,
+  cards,
   onDelete,
   selectedLevel,
   onResetLevel,
 }: SavedVocabListProps) {
+  const displayItems = cards || items;
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [activePosFilter, setActivePosFilter] = useState<PosFilter>('all');
-  const [enlargedItem, setEnlargedItem] = useState<VocabularyItem | null>(null);
+  const [enlargedItem, setEnlargedItem] = useState<VocabularyItem | CardDisplayData | null>(null);
   const [enlargedFace, setEnlargedFace] = useState<1 | 2>(2);
-  const [deletingItem, setDeletingItem] = useState<VocabularyItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<VocabularyItem | CardDisplayData | null>(null);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [searchFilter, setSearchFilter] = useState('');
@@ -217,12 +220,12 @@ export function SavedVocabList({
   // Newly saved vocabulary items must appear at the FAR LEFT of the list:
   // Sort descending by created_at timestamp so newest item is at index 0 (top-left).
   const sortedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
+    return [...displayItems].sort((a, b) => {
       const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
       const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
       return timeB - timeA;
     });
-  }, [items]);
+  }, [displayItems]);
 
   // Filter items by Level, POS, and optional search text
   const filteredItems = useMemo(() => {
@@ -277,18 +280,18 @@ export function SavedVocabList({
   // POS counts
   const posCounts = useMemo(() => {
     return {
-      all: items.length,
-      noun: items.filter((it) => it.part_of_speech === PartOfSpeech.Noun).length,
-      verb: items.filter((it) => it.part_of_speech === PartOfSpeech.Verb).length,
-      adjective: items.filter((it) => it.part_of_speech === PartOfSpeech.Adjective).length,
-      other: items.filter(
+      all: displayItems.length,
+      noun: displayItems.filter((it) => it.part_of_speech === PartOfSpeech.Noun).length,
+      verb: displayItems.filter((it) => it.part_of_speech === PartOfSpeech.Verb).length,
+      adjective: displayItems.filter((it) => it.part_of_speech === PartOfSpeech.Adjective).length,
+      other: displayItems.filter(
         (it) =>
           it.part_of_speech !== PartOfSpeech.Noun &&
           it.part_of_speech !== PartOfSpeech.Verb &&
           it.part_of_speech !== PartOfSpeech.Adjective,
       ).length,
     };
-  }, [items]);
+  }, [displayItems]);
 
   // Toggle card flip (Pure reference only, NO SRS effects)
   const handleToggleFlip = (id: string) => {
@@ -364,7 +367,7 @@ export function SavedVocabList({
           )}
         </div>
 
-        {items.length > 4 && (
+        {displayItems.length > 4 && (
           <div className="saved-vocab-search-box">
             <input
               type="text"
@@ -388,7 +391,7 @@ export function SavedVocabList({
       </div>
 
       {/* ── Empty State ── */}
-      {items.length === 0 ? (
+      {displayItems.length === 0 ? (
         <div className="saved-vocab-empty">
           <div className="empty-icon">📖</div>
           <h3 className="empty-title">No saved vocabulary yet</h3>
@@ -417,7 +420,7 @@ export function SavedVocabList({
               onResetLevel?.();
             }}
           >
-            Show all saved words ({items.length})
+            Show all saved words ({displayItems.length})
           </button>
         </div>
       ) : (
@@ -733,7 +736,34 @@ export function SavedVocabList({
             <div className="modal-body expanded-viewer-body">
               <div className="format-a-preview-scroll">
                 {enlargedItem.format_a ? (
-                  <FormatADisplay data={enlargedItem.format_a} />
+                  <FormatADisplay
+                    data={enlargedItem.format_a}
+                    editable={true}
+                    onUpdateMeaning={(field, value) => {
+                      const updated = masterVocabularyService.updateMeaning(enlargedItem.id, field, value);
+                      if (updated?.card) {
+                        setEnlargedItem(updated.card);
+                      } else if (updated?.atomicRecords?.[0]) {
+                        setEnlargedItem(updated.atomicRecords[0]);
+                      }
+                    }}
+                    onUpdateSynonym={(index, text, gender, context) => {
+                      const updated = masterVocabularyService.updateSynonym(enlargedItem.id, index, text, gender, context);
+                      if (updated?.card) {
+                        setEnlargedItem(updated.card);
+                      } else if (updated?.atomicRecords?.[0]) {
+                        setEnlargedItem(updated.atomicRecords[0]);
+                      }
+                    }}
+                    onUpdateAntonym={(index, text, gender, context) => {
+                      const updated = masterVocabularyService.updateAntonym(enlargedItem.id, index, text, gender, context);
+                      if (updated?.card) {
+                        setEnlargedItem(updated.card);
+                      } else if (updated?.atomicRecords?.[0]) {
+                        setEnlargedItem(updated.atomicRecords[0]);
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="format-a-not-available">
                     <p>Detailed profile not available for this item.</p>

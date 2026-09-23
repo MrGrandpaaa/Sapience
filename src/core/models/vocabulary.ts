@@ -7,18 +7,23 @@ import type { AdjectiveTargetUnit } from '../services/adjectivePresentationServi
 export type VocabLevel = MemoryLevel;
 
 /**
- * An item in the Master Vocabulary List with Spaced Repetition Memory State.
+ * ATOMIC VOCABULARY MEMORY DATA
  *
- * Each item has a distinct identity separate from its spelling.
- * Tracks cognitive memory state (Level 0–5), review timestamps,
- * streak, retrieval stats, and skill performance.
+ * Each independently testable lexical item is stored separately.
+ * Single source of truth for games, SRS retrieval, audio, distractor generation, etc.
+ *
+ * Example:
+ * Record A: word: "compagnon", gender: "masculine"
+ * Record B: word: "compagne", gender: "feminine"
  */
-export interface VocabularyItem {
+export interface AtomicVocabularyRecord {
   id: UUID;
-  surface_form: string;
+  card_id?: UUID; // Links this atomic item to its Card Display Data
+  word?: string; // The atomic French word (e.g., "compagnon")
+  surface_form: string; // The atomic word surface form (synonymous with word)
   normalized_form: string;
   part_of_speech: PartOfSpeech;
-  gender?: Gender;
+  gender?: Gender; // Specific gender (Masculine / Feminine, not Both)
   level: VocabLevel; // 0 | 1 | 2 | 3 | 4 | 5
   last_review_at?: string | null;
   next_review_at?: string;
@@ -43,6 +48,44 @@ export interface VocabularyItem {
   created_at: Timestamp;
   updated_at: Timestamp;
 }
+
+/**
+ * CARD DISPLAY DATA
+ *
+ * Used only to render the vocabulary card.
+ * May combine related forms visually (e.g., "compagnon / compagne", "grand / grande").
+ * Must NOT be used as the source of truth for game questions.
+ */
+export interface CardDisplayData {
+  id: UUID; // Card ID
+  display_title: string; // e.g. "compagnon / compagne"
+  surface_form: string; // Combined surface form for card rendering
+  word?: string; // Optional word representation
+  normalized_form: string;
+  part_of_speech: PartOfSpeech;
+  gender?: Gender; // Gender.Both, Masculine, Feminine, etc.
+  atomic_record_ids: UUID[]; // References to atomic vocabulary memory records
+  level: VocabLevel; // Card presentation level
+  next_review_at?: string; // Earliest review time among atomic records
+  last_review_at?: string | null;
+  review_count?: number;
+  successful_retrievals?: number;
+  failed_retrievals?: number;
+  current_streak?: number;
+  average_response_time?: number;
+  skill_performance?: SkillPerformance;
+  maintenance_stage?: number;
+  item_mastery?: ItemMasteryStatus;
+  format_a?: FormatAData;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/**
+ * Alias for AtomicVocabularyRecord across existing game engines, SRS engines, and services.
+ * Every VocabularyItem in memory and storage is an atomic lexical record.
+ */
+export type VocabularyItem = AtomicVocabularyRecord;
 
 /**
  * An independent positional learning unit for Adjectives with distinct meanings (§7, §8).
@@ -76,7 +119,7 @@ export interface VocabularyStatistics {
  * Calculates vocabulary statistics directly from a list of items.
  */
 export function calculateVocabularyStats(
-  items: VocabularyItem[],
+  items: (VocabularyItem | CardDisplayData)[],
   asOf: Date = new Date(),
 ): VocabularyStatistics {
   const stats: VocabularyStatistics = {

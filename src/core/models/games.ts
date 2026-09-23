@@ -146,6 +146,7 @@ export interface ListeningWritingQuestion extends BaseGameQuestion {
   requiresArticle: boolean;
   hintVietnamese?: string;
   partOfSpeech: PartOfSpeech;
+  genderTag?: string;
 }
 
 export interface McqOption {
@@ -175,12 +176,12 @@ export interface MatchingQuestion extends BaseGameQuestion {
 export interface GenderQuestion extends BaseGameQuestion {
   gameType: 'gender';
   nounFormWithoutArticle: string;
-  canonicalGender: 'masculine' | 'feminine';
-  canonicalArticleIndefinite: 'un' | 'une';
-  canonicalArticleDefinite: 'le' | 'la' | "l'";
+  canonicalGender: 'masculine' | 'feminine' | 'both';
+  canonicalArticleIndefinite?: 'un' | 'une' | string;
+  canonicalArticleDefinite?: 'le' | 'la' | "l'" | string;
   hasElision: boolean;
   options: McqOption[];
-  questionMode: 'gender_only' | 'article_only' | 'elision_resolution';
+  questionMode?: 'gender_only' | 'article_only' | 'elision_resolution' | 'three_options';
 }
 
 export type VerbConjugationMode =
