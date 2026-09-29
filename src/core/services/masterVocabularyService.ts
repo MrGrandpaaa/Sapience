@@ -126,6 +126,14 @@ class MasterVocabularyService {
   public isCombinedEntry(item: any): boolean {
     if (!item) return false;
 
+    // An item that already has a specific single gender and no combined slash is strictly atomic
+    if (
+      (item.gender === Gender.Masculine || item.gender === Gender.Feminine) &&
+      (typeof item.surface_form !== 'string' || !item.surface_form.includes(' / '))
+    ) {
+      return false;
+    }
+
     // Explicit combined check: has " / " in surface_form
     if (typeof item.surface_form === 'string' && item.surface_form.includes(' / ')) {
       return true;
@@ -147,6 +155,9 @@ class MasterVocabularyService {
 
     // Adjective with distinct masculine & feminine forms
     if (item.part_of_speech === PartOfSpeech.Adjective) {
+      if (item.gender === Gender.Masculine || item.gender === Gender.Feminine) {
+        return false;
+      }
       const grammar = item.format_a?.grammar;
       if (
         grammar?.masculine &&
@@ -329,6 +340,7 @@ class MasterVocabularyService {
         grammar: {
           ...entry.format_a.grammar,
           masculine: mascWord,
+          feminine: undefined,
         },
       } : undefined;
 
@@ -338,6 +350,7 @@ class MasterVocabularyService {
         grammar: {
           ...entry.format_a.grammar,
           feminine: femWord,
+          masculine: undefined,
         },
       } : undefined;
 
@@ -594,7 +607,7 @@ class MasterVocabularyService {
         (it) => it.card_id === card.id || (card.atomic_record_ids && card.atomic_record_ids.includes(it.id)),
       );
       if (records.length > 0) {
-        card.atomic_record_ids = records.map((r) => r.id);
+        card.atomic_record_ids = Array.from(new Set(records.map((r) => r.id)));
         card.level = Math.min(...records.map((r) => r.level ?? 0)) as VocabLevel;
         const nextReviewTimes = records
           .map((r) => r.next_review_at)
@@ -605,6 +618,123 @@ class MasterVocabularyService {
         }
       }
     }
+  }
+
+  /**
+   * Merges duplicate copies of an atomic vocabulary record created by previous reload bugs.
+   * Keeps the record with the most advanced/recent valid SRS state while preserving user edits.
+   */
+  private mergeDuplicateRecords(
+    a: AtomicVocabularyRecord,
+    b: AtomicVocabularyRecord,
+  ): AtomicVocabularyRecord {
+    const timeA = a.last_review_at ? new Date(a.last_review_at).getTime() : 0;
+    const timeB = b.last_review_at ? new Date(b.last_review_at).getTime() : 0;
+    const countA = a.review_count ?? 0;
+    const countB = b.review_count ?? 0;
+    const levelA = a.level ?? 0;
+    const levelB = b.level ?? 0;
+
+    const bIsMoreAdvanced =
+      countB > countA ||
+      (countB === countA && timeB > timeA) ||
+      (countB === countA && timeB === timeA && levelB > levelA);
+
+    const base: AtomicVocabularyRecord = bIsMoreAdvanced ? { ...b } : { ...a };
+    const other: AtomicVocabularyRecord = bIsMoreAdvanced ? a : b;
+
+    base.review_count = Math.max(countA, countB);
+    base.successful_retrievals = Math.max(
+      a.successful_retrievals ?? 0,
+      b.successful_retrievals ?? 0,
+    );
+    base.failed_retrievals = Math.max(
+      a.failed_retrievals ?? 0,
+      b.failed_retrievals ?? 0,
+    );
+    base.current_streak = Math.max(
+      a.current_streak ?? 0,
+      b.current_streak ?? 0,
+    );
+
+    if (bIsMoreAdvanced) {
+      base.level = b.level;
+      base.next_review_at = b.next_review_at || a.next_review_at;
+      base.last_review_at = b.last_review_at || a.last_review_at;
+    } else {
+      base.level = a.level;
+      base.next_review_at = a.next_review_at || b.next_review_at;
+      base.last_review_at = a.last_review_at || b.last_review_at;
+    }
+
+    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (createdA > 0 && createdB > 0) {
+      base.created_at = createdA <= createdB ? a.created_at : b.created_at;
+    }
+
+    const updatedA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const updatedB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    base.updated_at = updatedA >= updatedB ? a.updated_at : b.updated_at;
+
+    // Preserve Format A user edits
+    if (!base.format_a && other.format_a) {
+      base.format_a = other.format_a;
+    } else if (base.format_a && other.format_a) {
+      base.format_a = {
+        ...other.format_a,
+        ...base.format_a,
+        meaning_en: base.format_a.meaning_en || other.format_a.meaning_en,
+        meaning_vi: base.format_a.meaning_vi || other.format_a.meaning_vi,
+        example: base.format_a.example || other.format_a.example,
+        examples: base.format_a.examples || other.format_a.examples,
+        synonyms: base.format_a.synonyms || other.format_a.synonyms,
+        antonyms: base.format_a.antonyms || other.format_a.antonyms,
+        collocations: base.format_a.collocations || other.format_a.collocations,
+      };
+    }
+
+    // Clean up cross-gender grammar fields if present in an atomic adjective record
+    if (base.part_of_speech === PartOfSpeech.Adjective && base.format_a?.grammar) {
+      const g = { ...base.format_a.grammar } as any;
+      if (base.gender === Gender.Masculine || base.id.endsWith('-masc')) {
+        delete g.feminine;
+      } else if (base.gender === Gender.Feminine || base.id.endsWith('-fem')) {
+        delete g.masculine;
+      }
+      base.format_a.grammar = g;
+    }
+
+    return base;
+  }
+
+  /**
+   * Merges duplicate copies of a card created by previous reload bugs.
+   */
+  private mergeDuplicateCards(
+    a: CardDisplayData,
+    b: CardDisplayData,
+  ): CardDisplayData {
+    const timeA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const timeB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    const base: CardDisplayData = timeB > timeA ? { ...b } : { ...a };
+    const other: CardDisplayData = timeB > timeA ? a : b;
+
+    const combinedIds = Array.from(
+      new Set([...(a.atomic_record_ids || []), ...(b.atomic_record_ids || [])]),
+    );
+    base.atomic_record_ids = combinedIds;
+
+    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (createdA > 0 && createdB > 0) {
+      base.created_at = createdA <= createdB ? a.created_at : b.created_at;
+    }
+
+    if (!base.format_a && other.format_a) {
+      base.format_a = other.format_a;
+    }
+    return base;
   }
 
   private loadFromStorage(): void {
@@ -654,24 +784,89 @@ class MasterVocabularyService {
         (card) => typeof card.id === 'string' && !card.id.startsWith('vocab-'),
       );
 
-      // ── MIGRATION CHECK ──────────────────────────────────────────────────
-      // If cards are missing OR existing items contain legacy combined forms:
+      // ── STEP 1: SELF-HEALING DEDUPLICATION ─────────────────────────────
+      // Merge duplicate records sharing the same ID created by previous reload bugs
+      const itemMap = new Map<string, AtomicVocabularyRecord>();
+      for (const rawItem of parsedItems) {
+        if (!rawItem || typeof rawItem.id !== 'string') continue;
+        const id = rawItem.id;
+        if (!itemMap.has(id)) {
+          itemMap.set(id, rawItem);
+        } else {
+          const existing = itemMap.get(id)!;
+          const merged = this.mergeDuplicateRecords(existing, rawItem);
+          itemMap.set(id, merged);
+        }
+      }
+      parsedItems = Array.from(itemMap.values());
+
+      const cardMap = new Map<string, CardDisplayData>();
+      for (const rawCard of parsedCards) {
+        if (!rawCard || typeof rawCard.id !== 'string') continue;
+        const id = rawCard.id;
+        if (!cardMap.has(id)) {
+          cardMap.set(id, rawCard);
+        } else {
+          const existing = cardMap.get(id)!;
+          const merged = this.mergeDuplicateCards(existing, rawCard);
+          cardMap.set(id, merged);
+        }
+      }
+      parsedCards = Array.from(cardMap.values());
+
+      // Sanitize cross-gender fields on all atomic adjective records
+      for (const item of parsedItems) {
+        if (item.part_of_speech === PartOfSpeech.Adjective && item.format_a?.grammar) {
+          const g = { ...item.format_a.grammar } as any;
+          if (item.gender === Gender.Masculine || item.id.endsWith('-masc')) {
+            delete g.feminine;
+          } else if (item.gender === Gender.Feminine || item.id.endsWith('-fem')) {
+            delete g.masculine;
+          }
+          item.format_a.grammar = g;
+        }
+      }
+
+      // ── STEP 2: LEGACY MIGRATION CHECK ─────────────────────────────────
+      // Only runs if cards are completely missing AND items exist (first-time migration from v1)
+      // OR if any remaining item is a genuine legacy combined entry:
       const needsMigration =
         (parsedCards.length === 0 && parsedItems.length > 0) ||
         parsedItems.some((item) => this.isCombinedEntry(item));
 
       if (needsMigration) {
-        const migratedItems: AtomicVocabularyRecord[] = [];
-        const migratedCards: CardDisplayData[] = [];
+        const migratedItemsMap = new Map<string, AtomicVocabularyRecord>();
+        const migratedCardsMap = new Map<string, CardDisplayData>();
 
-        for (const item of parsedItems) {
-          const { card, atomicRecords } = this.decomposeEntry(item);
-          migratedCards.push(card);
-          migratedItems.push(...atomicRecords);
+        for (const c of parsedCards) {
+          migratedCardsMap.set(c.id, c);
         }
 
-        this.items = migratedItems.map((it) => this.ensureSrsFields(it));
-        this.cards = migratedCards;
+        for (const item of parsedItems) {
+          if (this.isCombinedEntry(item)) {
+            const { card, atomicRecords } = this.decomposeEntry(item);
+            if (!migratedCardsMap.has(card.id)) {
+              migratedCardsMap.set(card.id, card);
+            }
+            for (const rec of atomicRecords) {
+              if (!migratedItemsMap.has(rec.id)) {
+                migratedItemsMap.set(rec.id, rec);
+              } else {
+                migratedItemsMap.set(rec.id, this.mergeDuplicateRecords(migratedItemsMap.get(rec.id)!, rec));
+              }
+            }
+          } else {
+            if (!migratedItemsMap.has(item.id)) {
+              migratedItemsMap.set(item.id, item);
+            } else {
+              migratedItemsMap.set(item.id, this.mergeDuplicateRecords(migratedItemsMap.get(item.id)!, item));
+            }
+          }
+        }
+
+        this.items = Array.from(migratedItemsMap.values()).map((it) => this.ensureSrsFields(it));
+        this.cards = Array.from(migratedCardsMap.values());
+        this.reconcileCardsAndItems();
         this.saveToStorage();
         return;
       }

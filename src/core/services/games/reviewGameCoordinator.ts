@@ -64,51 +64,6 @@ export class ReviewGameCoordinator {
       return [];
     }
 
-    // ── GENDER GAME 50/50 BALANCING (Part A) ──────────────────────────
-    if (gameType === 'gender') {
-      const mascCandidates = candidateItems.filter((it) => {
-        const g = it.gender || (it.format_a?.grammar as any)?.gender;
-        return g === Gender.Masculine;
-      });
-      const femCandidates = candidateItems.filter((it) => {
-        const g = it.gender || (it.format_a?.grammar as any)?.gender;
-        return g === Gender.Feminine;
-      });
-
-      const poolTarget = Math.min(count, candidateItems.length);
-      const mascExtra = Math.random() < 0.5;
-      let neededMasc = mascExtra ? Math.ceil(poolTarget / 2) : Math.floor(poolTarget / 2);
-      let neededFem = poolTarget - neededMasc;
-
-      if (mascCandidates.length < neededMasc) {
-        neededFem = Math.min(femCandidates.length, poolTarget - mascCandidates.length);
-        neededMasc = Math.min(mascCandidates.length, poolTarget - neededFem);
-      } else if (femCandidates.length < neededFem) {
-        neededMasc = Math.min(mascCandidates.length, poolTarget - femCandidates.length);
-        neededFem = Math.min(femCandidates.length, poolTarget - neededMasc);
-      }
-
-      const rankedMasc = reviewPriorityService.rankItemsForReview(mascCandidates).map((r) => r.item);
-      const rankedFem = reviewPriorityService.rankItemsForReview(femCandidates).map((r) => r.item);
-
-      const selected = [
-        ...rankedMasc.slice(0, neededMasc),
-        ...rankedFem.slice(0, neededFem),
-      ];
-
-      for (let i = selected.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [selected[i], selected[j]] = [selected[j], selected[i]];
-      }
-
-      const questions: GameQuestion[] = [];
-      for (const item of selected) {
-        const q = this.generateSingleQuestion('gender', item, allVocab);
-        if (q) questions.push(q);
-      }
-      return questions;
-    }
-
     // 2. Rank candidate items according to SRS priority hierarchy:
     // 1. Overdue duration -> 2. Error rate -> 3. Weak skill -> 4. Time since last retrieval
     // Each item is reviewed once.
@@ -136,6 +91,15 @@ export class ReviewGameCoordinator {
         q.supportLevel = decision.supportLevel;
         q.selectionReason = decision.selectionReason;
         questions.push(q);
+      }
+    }
+
+    // For specific games (e.g. gender, listening), randomize question presentation order
+    // so items/genders are chosen/presented independently and never forced into alternating patterns
+    if (gameType && gameType !== 'mixed') {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
       }
     }
 

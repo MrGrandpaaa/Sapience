@@ -137,6 +137,7 @@ export interface BaseGameQuestion {
   targetPosition?: AdjectivePosition;
   adjectiveTargetId?: string;
   isExtraPractice?: boolean;
+  genderTag?: string;
 }
 
 export interface ListeningWritingQuestion extends BaseGameQuestion {

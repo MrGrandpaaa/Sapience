@@ -152,104 +152,6 @@ class ReviewSessionEngine {
       );
       if (eligibleItems.length === 0) return null;
 
-      // ── GENDER GAME 50/50 BALANCED SELECTION (Prompt 5 Part A) ───
-      if (targetGame === 'gender') {
-        const poolTarget = Math.min(10, eligibleItems.length);
-
-        const mascPool = eligibleItems.filter((it) => {
-          const g = it.gender || (it.format_a?.grammar as any)?.gender;
-          return g === Gender.Masculine;
-        });
-        const femPool = eligibleItems.filter((it) => {
-          const g = it.gender || (it.format_a?.grammar as any)?.gender;
-          return g === Gender.Feminine;
-        });
-
-        // Determine targets for each gender (~50/50)
-        // If odd, randomly give the extra item to masc or fem so neither is favored
-        const mascExtra = Math.random() < 0.5;
-        let neededMasc = mascExtra ? Math.ceil(poolTarget / 2) : Math.floor(poolTarget / 2);
-        let neededFem = poolTarget - neededMasc;
-
-        // Balance if one pool is smaller than needed
-        if (mascPool.length < neededMasc) {
-          neededFem = Math.min(femPool.length, poolTarget - mascPool.length);
-          neededMasc = Math.min(mascPool.length, poolTarget - neededFem);
-        } else if (femPool.length < neededFem) {
-          neededMasc = Math.min(mascPool.length, poolTarget - femPool.length);
-          neededFem = Math.min(femPool.length, poolTarget - neededMasc);
-        }
-
-        // Rank due items first, then non-due items for each pool
-        const selectFromPool = (pool: VocabularyItem[], countNeeded: number): VocabularyItem[] => {
-          const due = pool.filter((it) => !it.next_review_at || new Date(it.next_review_at).getTime() <= nowMs);
-          const nonDue = pool.filter((it) => it.next_review_at && new Date(it.next_review_at).getTime() > nowMs);
-          const rankedDue = reviewPriorityService.rankItemsForReview(due, now).map((r) => r.item);
-          const rankedNonDue = [...nonDue].sort((a, b) => (a.review_count ?? 0) - (b.review_count ?? 0));
-          return [...rankedDue, ...rankedNonDue].slice(0, countNeeded);
-        };
-
-        const selectedMasc = selectFromPool(mascPool, neededMasc);
-        const selectedFem = selectFromPool(femPool, neededFem);
-
-        const selectedItems = [...selectedMasc, ...selectedFem];
-
-        // If still under poolTarget, take any remaining eligible items
-        if (selectedItems.length < poolTarget) {
-          const chosenIds = new Set(selectedItems.map((i) => i.id));
-          const remainder = eligibleItems.filter((i) => !chosenIds.has(i.id));
-          selectedItems.push(...remainder.slice(0, poolTarget - selectedItems.length));
-        }
-
-        // Shuffle selectedItems so there is no fixed repeating sequence
-        for (let i = selectedItems.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [selectedItems[i], selectedItems[j]] = [selectedItems[j], selectedItems[i]];
-        }
-
-        const questions: GameQuestion[] = [];
-        const queue: VocabularyItem[] = [];
-
-        for (const item of selectedItems) {
-          const q = reviewGameCoordinator.generateSingleQuestion(targetGame, item, allVocab);
-          if (q) {
-            const isDue = !item.next_review_at || new Date(item.next_review_at).getTime() <= nowMs;
-            q.isExtraPractice = !isDue;
-            questions.push(q);
-            queue.push(item);
-          }
-        }
-
-        if (questions.length === 0) return null;
-
-        const isSessionExtraPractice = questions.every((q) => q.isExtraPractice);
-
-        const newSession: ActiveReviewSession = {
-          id: `session-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          totalWords: questions.length,
-          completedCount: 0,
-          currentIndex: 0,
-          queueItemIds: queue.map((it) => it.id),
-          serializedQuestions: questions,
-          isExtraPractice: isSessionExtraPractice,
-          customGameType: targetGame,
-          stats: {
-            correct: 0,
-            total: 0,
-            success: 0,
-            borderline: 0,
-            failure: 0,
-            skillsTrained: {},
-          },
-          testedHistory: [],
-          startedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        reviewSessionPersistenceService.saveSession(newSession);
-        return newSession;
-      }
-
       // 2. Prepare 10 items pool (or all eligible if < 10 - Part 3 & 10)
       const poolTarget = Math.min(10, eligibleItems.length);
 
@@ -326,6 +228,14 @@ class ReviewSessionEngine {
       }
 
       if (questions.length === 0) return null;
+
+      // Randomize presentation order so items and genders appear independently
+      // without deterministic alternating or card-insertion sequence
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
 
       const isSessionExtraPractice = selectedDue.length === 0;
 

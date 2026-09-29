@@ -37,6 +37,9 @@ export function GameCardListeningMcq({
           size="xl"
           title="Click to replay audio"
         />
+        {question.genderTag && (
+          <span className="noun-gender-tag">{question.genderTag}</span>
+        )}
         {question.promptSubtext && (
           <p className="audio-center-note">{question.promptSubtext}</p>
         )}

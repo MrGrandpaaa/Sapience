@@ -60,15 +60,26 @@ export function formatPronunciationText(
 
     const cleanedSurface = cleanLexicalText(item.surface_form);
 
-    // Rule 1: NOUN — Must ALWAYS read with article
+    const effGender = targetGenderOverride || (item as any).targetGender || item.gender || (item.format_a?.grammar as any)?.gender;
+    const isFem = effGender === Gender.Feminine || effGender === 'feminine';
+
+    // Rule 1: NOUN — Must ALWAYS read with article for exactly ONE atomic item
     if (isNoun) {
       const nounPres = formatNounPresentation(item);
       if (nounPres) {
-        return nounPres.replace(/\s*\/\s*/g, ', ');
+        if (nounPres.includes(' / ')) {
+          const parts = nounPres.split(/\s*\/\s*/);
+          return (isFem && parts.length > 1) ? parts[1].trim() : parts[0].trim();
+        }
+        return nounPres;
       }
 
       // If the surface form already contains an article (e.g. "une voiture", "un livre", "l'homme")
       if (hasFrenchArticle(cleanedSurface)) {
+        if (cleanedSurface.includes('/')) {
+          const parts = cleanedSurface.split(/\s*\/\s*/);
+          return (isFem && parts.length > 1) ? parts[1].trim() : parts[0].trim();
+        }
         return cleanedSurface;
       }
 
@@ -76,10 +87,16 @@ export function formatPronunciationText(
       const nounGrammar = item.format_a?.grammar as FormatANounGrammar | undefined;
       const gender = item.gender || nounGrammar?.gender;
 
-      if (gender === Gender.Feminine) {
-        return `la ${cleanedSurface}`;
+      const singleSurface = cleanedSurface.includes('/')
+        ? ((isFem && cleanedSurface.split(/\s*\/\s*/).length > 1)
+            ? cleanedSurface.split(/\s*\/\s*/)[1].trim()
+            : cleanedSurface.split(/\s*\/\s*/)[0].trim())
+        : cleanedSurface;
+
+      if (gender === Gender.Feminine || isFem) {
+        return `la ${singleSurface}`;
       }
-      return `le ${cleanedSurface}`;
+      return `le ${singleSurface}`;
     }
 
     // Rule 2: VERB — Read appropriate lexical form
@@ -92,13 +109,13 @@ export function formatPronunciationText(
     if (isAdj) {
       const forms = getAdjectiveForms(item);
       const effectiveGender = targetGenderOverride || (item as any).targetGender || item.gender;
-      const isFem = effectiveGender === 'feminine' || effectiveGender === Gender.Feminine;
+      const isFemAdj = effectiveGender === 'feminine' || effectiveGender === Gender.Feminine;
 
-      if (isFem) {
-        return forms.feminine || forms.masculine || cleanedSurface.split(/\s*\/\s*/)[0].trim();
+      if (isFemAdj) {
+        return forms.feminine || forms.masculine || (cleanedSurface.includes('/') ? cleanedSurface.split(/\s*\/\s*/)[1]?.trim() || cleanedSurface.split(/\s*\/\s*/)[0].trim() : cleanedSurface);
       }
       // Default to masculine form
-      return forms.masculine || forms.feminine || cleanedSurface.split(/\s*\/\s*/)[0].trim();
+      return forms.masculine || forms.feminine || (cleanedSurface.includes('/') ? cleanedSurface.split(/\s*\/\s*/)[0].trim() : cleanedSurface);
     }
 
     return cleanedSurface;
@@ -108,12 +125,20 @@ export function formatPronunciationText(
   const { text, pos, gender } = input;
   const targetGender = targetGenderOverride || (input as any).targetGender;
   const cleaned = cleanLexicalText(text);
+  const isFem = targetGender === 'feminine' || targetGender === Gender.Feminine || gender === Gender.Feminine;
 
   if (pos === PartOfSpeech.Noun) {
+    if (cleaned.includes('/')) {
+      const parts = cleaned.split(/\s*\/\s*/).map((p) => p.trim());
+      const chosen = (isFem && parts.length > 1) ? parts[1] : parts[0];
+      if (hasFrenchArticle(chosen)) return chosen;
+      const g = isFem ? Gender.Feminine : Gender.Masculine;
+      return formatSingleNounPresentation(chosen, g);
+    }
     if (hasFrenchArticle(cleaned)) {
       return cleaned;
     }
-    const g = gender === Gender.Feminine ? Gender.Feminine : Gender.Masculine;
+    const g = isFem ? Gender.Feminine : Gender.Masculine;
     return formatSingleNounPresentation(cleaned, g);
   }
 
@@ -121,7 +146,6 @@ export function formatPronunciationText(
     // If text contains " / " (e.g. "grand / grande"), extract target
     if (cleaned.includes('/')) {
       const parts = cleaned.split(/\s*\/\s*/).map((p) => p.trim());
-      const isFem = targetGender === 'feminine' || targetGender === Gender.Feminine || gender === Gender.Feminine;
       if (isFem && parts.length > 1) {
         return parts[1];
       }

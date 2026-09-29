@@ -63,11 +63,6 @@ export class ListeningMcqEngine {
         cleanTargetText = cleanNounLemma(chosen);
       }
       audioText = cleanTargetText;
-
-      const genderLabel = effGender === 'feminine' ? 'féminin' : 'masculin';
-      const posNote = targetPosition?.positionBadge ? ` • Position: ${targetPosition.positionBadge}` : '';
-      promptSubtext = `Note: Adjectif (${genderLabel})${posNote}. Choose the matching French word.`;
-
       usedTexts.add(cleanTargetText.toLowerCase());
     } else if (isNoun) {
       effGender = (targetItem.gender === Gender.Feminine || targetGender === 'feminine')
@@ -82,12 +77,23 @@ export class ListeningMcqEngine {
       const art = grammar?.underlying_article || (g === Gender.Feminine ? 'la' : 'le');
       audioText = formatSingleNounPresentation(cleanTargetText, g, art, grammar?.is_h_aspire);
 
-      promptSubtext = 'Nouns are pronounced with their corresponding article.';
       usedTexts.add(cleanTargetText.toLowerCase());
     } else {
       cleanTargetText = cleanLexicalText(targetItem.surface_form).split(/\s*\/\s*/)[0].trim();
       audioText = cleanTargetText;
       usedTexts.add(cleanTargetText.toLowerCase());
+    }
+
+    // Gender label: strictly "masculin" or "feminine" if record has gender, never explanatory sentences
+    let genderTag: string | undefined = undefined;
+    const itemGender = targetItem.gender || (targetItem.format_a?.grammar as any)?.gender;
+    if (isAdj || isNoun || itemGender) {
+      const g = effGender || (itemGender === Gender.Feminine ? 'feminine' : itemGender === Gender.Masculine ? 'masculine' : undefined);
+      if (g === 'feminine' || itemGender === Gender.Feminine) {
+        genderTag = 'feminine';
+      } else if (g === 'masculine' || itemGender === Gender.Masculine) {
+        genderTag = 'masculin';
+      }
     }
 
     // ── GENDER EXCLUSION (Sections 2 & 7) ──────────────────────────────────
@@ -277,13 +283,14 @@ export class ListeningMcqEngine {
       gameType: 'listening_mcq',
       targetItem,
       prompt: 'Listen to the pronunciation and choose the correct answer:',
-      promptSubtext,
+      promptSubtext: undefined,
       audioText,
       options,
       targetGender: effGender,
       targetForm: cleanTargetText,
       targetPosition,
       adjectiveTargetId,
+      genderTag,
     };
   }
 

@@ -11,8 +11,8 @@ describe('Prompt 5 Implementation: Gender Game Engine & 50/50 Selection', () => 
     masterVocabularyService.clearAll();
   });
 
-  describe('Part A — 50/50 Selection for Gender Game', () => {
-    it('selects masculine and feminine targets with approximately 50/50 distribution', () => {
+  describe('Part A — Independent Random Gender Selection (No Alternating Pattern)', () => {
+    it('permits consecutive occurrences of the same gender and never forces alternating mas/fem', () => {
       // Seed 10 masculine nouns and 10 feminine nouns
       for (let i = 1; i <= 10; i++) {
         masterVocabularyService.addItem({
@@ -34,74 +34,80 @@ describe('Prompt 5 Implementation: Gender Game Engine & 50/50 Selection', () => 
       const allItems = masterVocabularyService.getAllItems();
       expect(allItems.length).toBe(20);
 
-      // Start a review session specifically for 'gender'
-      const session = reviewSessionEngine.startSession(10, {
-        customGameType: 'gender',
-        allowNonDue: true,
-      });
+      // Over multiple sessions, verify that the sequence is NOT strictly alternating
+      // and that consecutive occurrences of the same gender are permitted and observed
+      let observedConsecutiveSameGender = false;
+      let alwaysAlternating = true;
 
-      expect(session).not.toBeNull();
-      expect(session!.serializedQuestions.length).toBe(10);
+      for (let trial = 0; trial < 10; trial++) {
+        const questions = reviewGameCoordinator.buildSession(allItems, {
+          gameType: 'gender',
+          count: 10,
+        });
 
-      // Count masculine vs feminine in questions
-      let mascCount = 0;
-      let femCount = 0;
+        expect(questions.length).toBe(10);
+        const genders = questions.map((q) => q.targetItem.gender);
 
-      for (const q of session!.serializedQuestions) {
-        expect(q.gameType).toBe('gender');
-        const item = q.targetItem;
-        const g = item.gender || (item.format_a?.grammar as any)?.gender;
-        if (g === Gender.Masculine) mascCount++;
-        if (g === Gender.Feminine) femCount++;
+        const isStrictlyAlternating = genders.every(
+          (g, idx) => idx === 0 || g !== genders[idx - 1]
+        );
+
+        if (!isStrictlyAlternating) {
+          alwaysAlternating = false;
+          observedConsecutiveSameGender = true;
+          break;
+        }
       }
 
-      // Exactly 5 masculine and 5 feminine in a 10-item session (50/50)
-      expect(mascCount).toBe(5);
-      expect(femCount).toBe(5);
+      // Must NOT be stuck in an alternating pattern
+      expect(alwaysAlternating).toBe(false);
+      expect(observedConsecutiveSameGender).toBe(true);
     });
 
-    it('does not use a hardcoded repeating sequence and shuffles order', () => {
-      for (let i = 1; i <= 10; i++) {
-        masterVocabularyService.addItem({
-          id: `masc-${i}`,
-          surface_form: `motM${i}`,
-          part_of_speech: PartOfSpeech.Noun,
-          gender: Gender.Masculine,
-          level: 1,
-        } as any);
-        masterVocabularyService.addItem({
-          id: `fem-${i}`,
-          surface_form: `motF${i}`,
-          part_of_speech: PartOfSpeech.Noun,
-          gender: Gender.Feminine,
-          level: 1,
-        } as any);
-      }
+    it('selects vocabulary records independently from atomic storage without card display interference', () => {
+      // Add items with various genders
+      masterVocabularyService.addItem({
+        id: 'celibataire-masc',
+        surface_form: 'célibataire',
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Masculine,
+      } as any);
+      masterVocabularyService.addItem({
+        id: 'celibataire-fem',
+        surface_form: 'célibataire',
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Feminine,
+      } as any);
+      masterVocabularyService.addItem({
+        id: 'compagnon-masc',
+        surface_form: 'compagnon',
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Masculine,
+      } as any);
+      masterVocabularyService.addItem({
+        id: 'voiture-fem',
+        surface_form: 'voiture',
+        part_of_speech: PartOfSpeech.Noun,
+        gender: Gender.Feminine,
+      } as any);
 
       const allItems = masterVocabularyService.getAllItems();
       const questions = reviewGameCoordinator.buildSession(allItems, {
         gameType: 'gender',
-        count: 10,
+        count: 4,
       });
 
-      expect(questions.length).toBe(10);
-
-      // Verify it is not simply 5 masculines followed by 5 feminines every time
-      // or a rigid alternating pattern
-      const genders = questions.map((q) => q.targetItem.gender);
-      const isAllMascThenFem = genders.slice(0, 5).every((g) => g === Gender.Masculine) &&
-                               genders.slice(5).every((g) => g === Gender.Feminine);
-      const isAlternating = genders.every((g, idx) => idx === 0 || g !== genders[idx - 1]);
-
-      // Both genders must be present in equal numbers
-      const mascCount = genders.filter((g) => g === Gender.Masculine).length;
-      const femCount = genders.filter((g) => g === Gender.Feminine).length;
-      expect(mascCount).toBe(5);
-      expect(femCount).toBe(5);
+      expect(questions.length).toBe(4);
+      for (const q of questions) {
+        expect(q.gameType).toBe('gender');
+        expect(q.targetItem).toBeDefined();
+        // Each target item is an individual atomic vocabulary record
+        expect(typeof q.targetItem.id).toBe('string');
+      }
     });
 
-    it('balances gracefully when one gender has fewer available records', () => {
-      // 2 feminine nouns and 8 masculine nouns
+    it('gracefully handles pools with any gender distribution without forcing 50/50 balance', () => {
+      // 8 masculine nouns and 2 feminine nouns
       for (let i = 1; i <= 8; i++) {
         masterVocabularyService.addItem({
           id: `m-${i}`,
@@ -129,11 +135,6 @@ describe('Prompt 5 Implementation: Gender Game Engine & 50/50 Selection', () => 
 
       expect(session).not.toBeNull();
       expect(session!.serializedQuestions.length).toBe(10);
-
-      const femCount = session!.serializedQuestions.filter(
-        (q) => q.targetItem.gender === Gender.Feminine
-      ).length;
-      expect(femCount).toBe(2); // Took all available feminine items
     });
   });
 

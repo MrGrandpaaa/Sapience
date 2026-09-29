@@ -46,8 +46,8 @@ describe('Prompt 4 Implementation: Listening - Dictation (Writing) Engine', () =
       expect(question.canonicalAnswer).toBe('compagnon');
       expect(question.canonicalAnswer).not.toContain('/');
 
-      // No gender tag because pronunciation is distinct from compagne
-      expect(question.genderTag).toBeUndefined();
+      // Gender tag shows single-word "masculin"
+      expect(question.genderTag).toBe('masculin');
 
       // Combined card form never used as audio or answer
       expect(question.audioText).not.toContain('compagnon / compagne');
@@ -114,7 +114,7 @@ describe('Prompt 4 Implementation: Listening - Dictation (Writing) Engine', () =
       // Audio speaks single atomic word
       expect(question.audioText).toBe('compagne');
       expect(question.canonicalAnswer).toBe('compagne');
-      expect(question.genderTag).toBeUndefined();
+      expect(question.genderTag).toBe('feminine');
 
       // Bare word answer accepted
       const evalBare = listeningWritingEngine.evaluateAnswer(question, 'compagne');
@@ -218,7 +218,7 @@ describe('Prompt 4 Implementation: Listening - Dictation (Writing) Engine', () =
       const qMasc = listeningWritingEngine.generateQuestion(mascItem, items);
       expect(qMasc.audioText).toBe('élève');
       expect(qMasc.canonicalAnswer).toBe('élève');
-      expect(qMasc.genderTag).toBe('(n, mas)');
+      expect(qMasc.genderTag).toBe('masculin');
 
       // Bare word accepted
       expect(listeningWritingEngine.evaluateAnswer(qMasc, 'élève').isCorrect).toBe(true);
@@ -235,7 +235,7 @@ describe('Prompt 4 Implementation: Listening - Dictation (Writing) Engine', () =
       const qFem = listeningWritingEngine.generateQuestion(femItem, items);
       expect(qFem.audioText).toBe('élève');
       expect(qFem.canonicalAnswer).toBe('élève');
-      expect(qFem.genderTag).toBe('(n, fem)');
+      expect(qFem.genderTag).toBe('feminine');
 
       // Bare word accepted
       expect(listeningWritingEngine.evaluateAnswer(qFem, 'élève').isCorrect).toBe(true);

@@ -136,14 +136,15 @@ export class ListeningWritingEngine {
       }
     }
 
+    // Gender label: strictly "masculin" or "feminine" if record has gender, never explanatory sentences
     let genderTag: string | undefined = undefined;
-    if (isHomophonic) {
-      if (isNoun) {
-        genderTag = effGender === 'feminine' ? '(n, fem)' : '(n, mas)';
-      } else if (isAdj) {
-        genderTag = effGender === 'feminine' ? '(adj, fem)' : '(adj, mas)';
-      } else {
-        genderTag = effGender === 'feminine' ? 'féminin' : 'masculin';
+    const itemGender = item.gender || (item.format_a?.grammar as any)?.gender;
+    if (isAdj || isNoun || itemGender) {
+      const g = effGender || (itemGender === Gender.Feminine ? 'feminine' : itemGender === Gender.Masculine ? 'masculine' : undefined);
+      if (g === 'feminine' || itemGender === Gender.Feminine) {
+        genderTag = 'feminine';
+      } else if (g === 'masculine' || itemGender === Gender.Masculine) {
+        genderTag = 'masculin';
       }
     }
 

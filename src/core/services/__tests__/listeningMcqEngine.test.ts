@@ -62,6 +62,10 @@ describe('Prompt 3 Implementation: Listening - Multiple Choice Engine', () => {
         expect(opt.text).not.toContain('/');
         expect(opt.text).not.toContain('compagnon / compagne');
       }
+
+      // 6. Confirm genderTag is "masculin" and promptSubtext has no explanatory sentences
+      expect(question.genderTag).toBe('masculin');
+      expect(question.promptSubtext).toBeUndefined();
     });
   });
 
@@ -116,6 +120,10 @@ describe('Prompt 3 Implementation: Listening - Multiple Choice Engine', () => {
       for (const opt of question.options) {
         expect(opt.text).not.toContain('/');
       }
+
+      // 6. Confirm genderTag is "feminine" and promptSubtext has no explanatory sentences
+      expect(question.genderTag).toBe('feminine');
+      expect(question.promptSubtext).toBeUndefined();
     });
   });
 
@@ -227,6 +235,8 @@ describe('Prompt 3 Implementation: Listening - Multiple Choice Engine', () => {
       const qMasc = listeningMcqEngine.generateQuestion(mascAdj, items, 'masculine');
       expect(qMasc.targetForm).toBe('grand');
       expect(qMasc.audioText).toBe('grand');
+      expect(qMasc.genderTag).toBe('masculin');
+      expect(qMasc.promptSubtext).toBeUndefined();
       const mascTexts = qMasc.options.map((o) => o.text.toLowerCase());
       expect(mascTexts).toContain('grand');
       expect(mascTexts).not.toContain('grande');
@@ -235,6 +245,8 @@ describe('Prompt 3 Implementation: Listening - Multiple Choice Engine', () => {
       const qFem = listeningMcqEngine.generateQuestion(femAdj, items, 'feminine');
       expect(qFem.targetForm).toBe('grande');
       expect(qFem.audioText).toBe('grande');
+      expect(qFem.genderTag).toBe('feminine');
+      expect(qFem.promptSubtext).toBeUndefined();
       const femTexts = qFem.options.map((o) => o.text.toLowerCase());
       expect(femTexts).toContain('grande');
       expect(femTexts).not.toContain('grand');
