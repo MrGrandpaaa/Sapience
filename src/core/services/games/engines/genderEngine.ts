@@ -8,7 +8,7 @@ import {
 import { masterVocabularyService } from '../../masterVocabularyService';
 
 function cleanNounLemma(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
   return text
     .replace(/\s*\([^)]*\)/g, '')
     .replace(/^(une\b|un\b|des\b|les\b|le\b|la\b|l'|l’)\s*/i, '')
@@ -47,7 +47,7 @@ function isDualGenderNoun(
     }
   }
 
-  const normalizedTarget = targetWord.trim().toLowerCase();
+  const normalizedTarget = (typeof targetWord === 'string' ? targetWord : '').trim().toLowerCase();
   if (!normalizedTarget) return false;
 
   const pool =

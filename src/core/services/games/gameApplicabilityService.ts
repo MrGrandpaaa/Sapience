@@ -53,7 +53,9 @@ export class GameApplicabilityService {
 
     const hasConjugationData =
       isVerb &&
-      getConjugationUnitsList(item).some((u) => Boolean(u.conjugated_form?.trim()));
+      getConjugationUnitsList(item).some(
+        (u) => typeof u.conjugated_form === 'string' && Boolean(u.conjugated_form.trim()),
+      );
 
     const clozeMatch = findClozeTargetMatch(item);
     const hasValidClozeExample = clozeMatch !== null;

@@ -39,15 +39,16 @@ export function findClozeTargetMatch(item: VocabularyItem): ClozeTargetMatch | n
 
   // 1. Gather ONLY user-entered examples (no constructions, no collocations)
   const candidateExamples: Array<{ french: string; translation?: string }> = [];
-  if (item.format_a?.example?.french?.trim()) {
+  const primaryExFr = item.format_a?.example?.french;
+  if (typeof primaryExFr === 'string' && primaryExFr.trim()) {
     candidateExamples.push({
-      french: item.format_a.example.french.trim(),
-      translation: item.format_a.example.vietnamese || item.format_a.example.english,
+      french: primaryExFr.trim(),
+      translation: item.format_a?.example?.vietnamese || item.format_a?.example?.english,
     });
   }
   if (item.format_a?.examples && Array.isArray(item.format_a.examples)) {
     for (const ex of item.format_a.examples) {
-      if (ex?.french?.trim()) {
+      if (typeof ex?.french === 'string' && ex.french.trim()) {
         candidateExamples.push({
           french: ex.french.trim(),
           translation: ex.vietnamese || ex.english,
@@ -61,7 +62,8 @@ export function findClozeTargetMatch(item: VocabularyItem): ClozeTargetMatch | n
   }
 
   // 2. Identify all valid word forms of this vocabulary item
-  const cleanSurface = item.surface_form
+  const surface = typeof item.surface_form === 'string' ? item.surface_form : '';
+  const cleanSurface = surface
     .replace(/\s*\(n,\s*(mas|fem)\)/i, '')
     .trim();
 
@@ -71,7 +73,9 @@ export function findClozeTargetMatch(item: VocabularyItem): ClozeTargetMatch | n
     ? cleanSurface.split(/\s*\/\s*/)[0].trim()
     : cleanSurface;
 
-  const candidateForms: string[] = [rootWord, cleanSurface];
+  const candidateForms: string[] = [];
+  if (rootWord) candidateForms.push(rootWord);
+  if (cleanSurface && cleanSurface !== rootWord) candidateForms.push(cleanSurface);
 
   if (isAdj) {
     if (cleanSurface.includes('/')) {
@@ -80,24 +84,69 @@ export function findClozeTargetMatch(item: VocabularyItem): ClozeTargetMatch | n
       }
     }
     const grammar = item.format_a?.grammar as any;
-    if (grammar?.masculine) candidateForms.push(grammar.masculine);
-    if (grammar?.feminine) candidateForms.push(grammar.feminine);
-    if (grammar?.masculine_plural) candidateForms.push(grammar.masculine_plural);
-    if (grammar?.feminine_plural) candidateForms.push(grammar.feminine_plural);
+    if (grammar) {
+      if (typeof grammar.masculine === 'string') {
+        candidateForms.push(grammar.masculine);
+      } else if (grammar.masculine?.lemma && typeof grammar.masculine.lemma === 'string') {
+        candidateForms.push(grammar.masculine.lemma);
+      }
+
+      if (typeof grammar.feminine === 'string') {
+        candidateForms.push(grammar.feminine);
+      } else if (grammar.feminine?.lemma && typeof grammar.feminine.lemma === 'string') {
+        candidateForms.push(grammar.feminine.lemma);
+      }
+
+      if (typeof grammar.masculine_plural === 'string') candidateForms.push(grammar.masculine_plural);
+      if (typeof grammar.feminine_plural === 'string') candidateForms.push(grammar.feminine_plural);
+    }
   } else if (isNoun) {
     const grammar = item.format_a?.grammar as any;
-    if (grammar?.plural) candidateForms.push(grammar.plural);
-    if (grammar?.masculine_form) candidateForms.push(grammar.masculine_form);
-    if (grammar?.feminine_form) candidateForms.push(grammar.feminine_form);
+    if (grammar) {
+      // Plural can be a string or structured object { masculine?: string; feminine?: string; shared?: string }
+      if (typeof grammar.plural === 'string') {
+        candidateForms.push(grammar.plural);
+      } else if (typeof grammar.plural === 'object' && grammar.plural !== null) {
+        if (typeof grammar.plural.masculine === 'string') candidateForms.push(grammar.plural.masculine);
+        if (typeof grammar.plural.feminine === 'string') candidateForms.push(grammar.plural.feminine);
+        if (typeof grammar.plural.shared === 'string') candidateForms.push(grammar.plural.shared);
+      }
+
+      // masculine_form can be a string or a NounFormItem object { lemma: string, ... }
+      if (typeof grammar.masculine_form === 'string') {
+        candidateForms.push(grammar.masculine_form);
+      } else if (grammar.masculine_form?.lemma && typeof grammar.masculine_form.lemma === 'string') {
+        candidateForms.push(grammar.masculine_form.lemma);
+      }
+
+      // feminine_form can be a string or a NounFormItem object { lemma: string, ... }
+      if (typeof grammar.feminine_form === 'string') {
+        candidateForms.push(grammar.feminine_form);
+      } else if (grammar.feminine_form?.lemma && typeof grammar.feminine_form.lemma === 'string') {
+        candidateForms.push(grammar.feminine_form.lemma);
+      }
+
+      // forms map: { masculine?: string, feminine?: string }
+      if (grammar.forms && typeof grammar.forms === 'object') {
+        if (typeof grammar.forms.masculine === 'string') candidateForms.push(grammar.forms.masculine);
+        if (typeof grammar.forms.feminine === 'string') candidateForms.push(grammar.forms.feminine);
+      }
+
+      // lemma if present as string
+      if (typeof grammar.lemma === 'string') {
+        candidateForms.push(grammar.lemma);
+      }
+    }
+
     // Standard plural (+s)
-    if (!rootWord.endsWith('s') && !rootWord.endsWith('x')) {
+    if (rootWord && !rootWord.endsWith('s') && !rootWord.endsWith('x')) {
       candidateForms.push(`${rootWord}s`);
     }
   } else if (isVerb) {
     // Include non-empty conjugated forms
     const conjUnits = getConjugationUnitsList(item);
     for (const u of conjUnits) {
-      if (u.conjugated_form?.trim()) {
+      if (typeof u.conjugated_form === 'string' && u.conjugated_form.trim()) {
         const cleanConj = cleanConjugatedForm(u.conjugated_form, u.person);
         if (cleanConj) candidateForms.push(cleanConj);
       }
@@ -121,8 +170,8 @@ export function findClozeTargetMatch(item: VocabularyItem): ClozeTargetMatch | n
   const uniqueCandidates = Array.from(
     new Set(
       candidateForms
-        .map((c) => c.trim())
-        .filter((c) => c.length > 0),
+        .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        .map((c) => c.trim()),
     ),
   );
 

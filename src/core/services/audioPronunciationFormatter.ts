@@ -9,7 +9,7 @@ import { getAdjectiveForms, AdjectiveTargetGender } from './adjectivePresentatio
  * as well as quotation marks.
  */
 export function cleanLexicalText(raw: string): string {
-  if (!raw) return '';
+  if (!raw || typeof raw !== 'string') return '';
   return raw
     .replace(/\s*\([^)]*\)/g, '') // remove (n, mas), (adj, fem), etc.
     .replace(/[«»""]/g, '')       // remove quotes
